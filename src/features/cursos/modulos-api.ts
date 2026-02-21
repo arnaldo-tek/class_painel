@@ -1,0 +1,164 @@
+import { supabase } from '@/lib/supabase'
+import type { Tables } from '@/types/database'
+
+export type Modulo = Tables<'modulos'>
+export type Aula = Tables<'aulas'>
+export type QuestaoAula = Tables<'questoes_da_aula'>
+
+// === Módulos ===
+
+export async function fetchModulos(cursoId: string) {
+  const { data, error } = await supabase
+    .from('modulos')
+    .select('*')
+    .eq('curso_id', cursoId)
+    .order('sort_order')
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createModulo(modulo: { nome: string; curso_id: string; sort_order?: number }) {
+  const { data, error } = await supabase
+    .from('modulos')
+    .insert(modulo)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateModulo(id: string, updates: Partial<Modulo>) {
+  const { data, error } = await supabase
+    .from('modulos')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteModulo(id: string) {
+  const { error } = await supabase.from('modulos').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function reorderModulos(modulos: { id: string; sort_order: number }[]) {
+  for (const m of modulos) {
+    await supabase.from('modulos').update({ sort_order: m.sort_order }).eq('id', m.id)
+  }
+}
+
+// === Aulas ===
+
+export async function fetchAulas(cursoId: string, moduloId?: string) {
+  let query = supabase
+    .from('aulas')
+    .select('*')
+    .eq('curso_id', cursoId)
+    .order('sort_order')
+
+  if (moduloId) {
+    query = query.eq('modulo_id', moduloId)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return data ?? []
+}
+
+export async function fetchAula(id: string) {
+  const { data, error } = await supabase
+    .from('aulas')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return data as Aula
+}
+
+export async function createAula(aula: {
+  titulo: string
+  curso_id: string
+  modulo_id?: string | null
+  descricao?: string | null
+  sort_order?: number
+}) {
+  const { data, error } = await supabase
+    .from('aulas')
+    .insert(aula)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateAula(id: string, updates: Partial<Aula>) {
+  const { data, error } = await supabase
+    .from('aulas')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteAula(id: string) {
+  const { error } = await supabase.from('aulas').delete().eq('id', id)
+  if (error) throw error
+}
+
+// === Questões ===
+
+export async function fetchQuestoesAula(aulaId: string) {
+  const { data, error } = await supabase
+    .from('questoes_da_aula')
+    .select('*')
+    .eq('aula_id', aulaId)
+    .order('sort_order')
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createQuestaoAula(questao: {
+  aula_id: string
+  pergunta: string
+  resposta: string
+  alternativas: string[]
+  video?: string | null
+  sort_order?: number
+}) {
+  const { data, error } = await supabase
+    .from('questoes_da_aula')
+    .insert(questao)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateQuestaoAula(id: string, updates: Partial<QuestaoAula>) {
+  const { data, error } = await supabase
+    .from('questoes_da_aula')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteQuestaoAula(id: string) {
+  const { error } = await supabase.from('questoes_da_aula').delete().eq('id', id)
+  if (error) throw error
+}

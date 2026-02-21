@@ -1,0 +1,206 @@
+import { useState, type FormEvent } from 'react'
+import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react'
+import { useNoticias, useCreateNoticia, useUpdateNoticia, useDeleteNoticia } from './noticias-hooks'
+import { useCategorias } from '@/features/categorias/hooks'
+import { uploadFile } from '@/lib/storage'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { Modal } from '@/components/ui/modal'
+import { FileUpload } from '@/components/ui/file-upload'
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+} from '@/components/ui/table'
+import { EmptyState } from '@/components/ui/empty-state'
+
+export function NoticiasPage() {
+  const { data: noticias, isLoading } = useNoticias()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const deleteMutation = useDeleteNoticia()
+
+  const editing = noticias?.find((n: any) => n.id === editingId)
+
+  function openNew() {
+    setEditingId(null)
+    setModalOpen(true)
+  }
+
+  function openEdit(id: string) {
+    setEditingId(id)
+    setModalOpen(true)
+  }
+
+  function closeModal() {
+    setModalOpen(false)
+    setEditingId(null)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Notícias</h1>
+        <Button onClick={openNew}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nova Notícia
+        </Button>
+      </div>
+
+      <Modal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editing ? 'Editar Notícia' : 'Nova Notícia'}
+        maxWidth="max-w-2xl"
+      >
+        <NoticiaForm editing={editing} onClose={closeModal} />
+      </Modal>
+
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+        </div>
+      ) : !noticias?.length ? (
+        <EmptyState
+          icon={<Newspaper className="h-12 w-12" />}
+          title="Nenhuma notícia"
+          description="Crie a primeira notícia."
+          action={
+            <Button onClick={openNew}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Notícia
+            </Button>
+          }
+        />
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Título</TableHead>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead className="w-20">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {noticias.map((n: any) => (
+              <TableRow key={n.id}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    {n.imagem && (
+                      <img src={n.imagem} alt="" className="h-10 w-14 rounded object-cover" />
+                    )}
+                    <span className="font-medium">{n.titulo}</span>
+                  </div>
+                </TableCell>
+                <TableCell>{n.categorias?.nome ?? '—'}</TableCell>
+                <TableCell className="text-gray-500">
+                  {n.created_at ? new Date(n.created_at).toLocaleDateString('pt-BR') : '—'}
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-1">
+                    <button onClick={() => openEdit(n.id)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
+                    <button onClick={() => { if (confirm(`Excluir "${n.titulo}"?`)) deleteMutation.mutate(n.id) }} className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  )
+}
+
+function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void }) {
+  const [titulo, setTitulo] = useState(editing?.titulo ?? '')
+  const [descricao, setDescricao] = useState(editing?.descricao ?? '')
+  const [categoriaId, setCategoriaId] = useState(editing?.categoria_id ?? '')
+  const [imagem, setImagem] = useState<string | null>(editing?.imagem ?? null)
+  const [error, setError] = useState('')
+
+  const { data: categoriasData } = useCategorias('noticia')
+  const categorias = categoriasData?.categorias ?? []
+
+  const createMutation = useCreateNoticia()
+  const updateMutation = useUpdateNoticia()
+  const isSaving = createMutation.isPending || updateMutation.isPending
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!titulo.trim()) { setError('Título é obrigatório'); return }
+    try {
+      const payload = {
+        titulo: titulo.trim(),
+        descricao: descricao.trim() || null,
+        categoria_id: categoriaId || null,
+        imagem,
+      }
+      if (editing) {
+        await updateMutation.mutateAsync({ id: editing.id, ...payload })
+      } else {
+        await createMutation.mutateAsync(payload as any)
+      }
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <FileUpload
+        label="Imagem da Notícia"
+        accept="image/*"
+        type="image"
+        value={imagem}
+        onChange={setImagem}
+        onUpload={(file) => uploadFile('noticias', file, 'imagens')}
+      />
+
+      {/* Título */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-700">Título</label>
+        <Input
+          placeholder="Título da notícia"
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          required
+        />
+      </div>
+
+      {/* Descrição */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-700">Descrição</label>
+        <textarea
+          className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          rows={4}
+          placeholder="Conteúdo da notícia..."
+          value={descricao}
+          onChange={(e) => setDescricao(e.target.value)}
+        />
+      </div>
+
+      {/* Categoria */}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-700">Categoria</label>
+        <Select
+          placeholder="Selecionar categoria"
+          options={(categorias as any[]).map((c: any) => ({ value: c.id, label: c.nome }))}
+          value={categoriaId}
+          onChange={(e) => setCategoriaId(e.target.value)}
+        />
+      </div>
+
+      {error && <p className="text-sm text-red-600">{error}</p>}
+
+      <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? 'Salvando...' : editing ? 'Salvar' : 'Criar Notícia'}
+        </Button>
+      </div>
+    </form>
+  )
+}

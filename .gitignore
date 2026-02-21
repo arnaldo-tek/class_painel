@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+
+# Supabase
+supabase/.temp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Build
+*.tsbuildinfo
