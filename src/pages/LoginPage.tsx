@@ -132,17 +132,9 @@ export function LoginPage() {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Senha
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Esqueceu a senha?
-                </Link>
-              </div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Senha
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -163,6 +155,14 @@ export function LoginPage() {
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
+              </div>
+              <div className="flex justify-end">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Esqueceu a senha?
+                </Link>
               </div>
             </div>
 
