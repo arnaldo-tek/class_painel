@@ -316,7 +316,7 @@ function MensagensTab({ comunidadeId }: { comunidadeId: string }) {
     if (!searchTerm) return true
     return (
       m.texto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.profiles?.nome?.toLowerCase().includes(searchTerm.toLowerCase())
+      m.profiles?.display_name?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   })
 
@@ -349,11 +349,11 @@ function MensagensTab({ comunidadeId }: { comunidadeId: string }) {
             <div key={m.id} className="flex gap-3 rounded-lg border border-gray-200 bg-white p-4">
               {/* Avatar */}
               <div className="h-9 w-9 shrink-0 rounded-full bg-gray-200 flex items-center justify-center">
-                {m.profiles?.foto ? (
-                  <img src={m.profiles.foto} alt="" className="h-9 w-9 rounded-full object-cover" />
+                {m.profiles?.photo_url ? (
+                  <img src={m.profiles.photo_url} alt="" className="h-9 w-9 rounded-full object-cover" />
                 ) : (
                   <span className="text-xs font-bold text-gray-500">
-                    {(m.profiles?.nome ?? '?')[0].toUpperCase()}
+                    {(m.profiles?.display_name ?? '?')[0].toUpperCase()}
                   </span>
                 )}
               </div>
@@ -361,7 +361,7 @@ function MensagensTab({ comunidadeId }: { comunidadeId: string }) {
               {/* Conteúdo */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">{m.profiles?.nome ?? 'Usuário'}</span>
+                  <span className="text-sm font-medium text-gray-900">{m.profiles?.display_name ?? 'Usuário'}</span>
                   <span className="text-xs text-gray-400">
                     {m.created_at ? new Date(m.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                   </span>
@@ -395,7 +395,7 @@ function UsuariosTab({ comunidadeId }: { comunidadeId: string }) {
   const filtered = (membros ?? []).filter((m) => {
     if (!searchTerm) return true
     return (
-      m.profiles?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.profiles?.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   })
@@ -429,11 +429,11 @@ function UsuariosTab({ comunidadeId }: { comunidadeId: string }) {
             <div key={m.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
               {/* Avatar */}
               <div className="h-10 w-10 shrink-0 rounded-full bg-gray-200 flex items-center justify-center">
-                {m.profiles?.foto ? (
-                  <img src={m.profiles.foto} alt="" className="h-10 w-10 rounded-full object-cover" />
+                {m.profiles?.photo_url ? (
+                  <img src={m.profiles.photo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
                 ) : (
                   <span className="text-sm font-bold text-gray-500">
-                    {(m.profiles?.nome ?? '?')[0].toUpperCase()}
+                    {(m.profiles?.display_name ?? '?')[0].toUpperCase()}
                   </span>
                 )}
               </div>
@@ -441,7 +441,7 @@ function UsuariosTab({ comunidadeId }: { comunidadeId: string }) {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-gray-900">{m.profiles?.nome ?? 'Sem nome'}</p>
+                  <p className="text-sm font-medium text-gray-900">{m.profiles?.display_name ?? 'Sem nome'}</p>
                   {m.suspenso && (
                     <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">Suspenso</span>
                   )}
@@ -459,7 +459,7 @@ function UsuariosTab({ comunidadeId }: { comunidadeId: string }) {
                   {m.suspenso ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                 </button>
                 <button
-                  onClick={() => { if (confirm(`Remover "${m.profiles?.nome}" da comunidade?`)) removeMutation.mutate(m.id) }}
+                  onClick={() => { if (confirm(`Remover "${m.profiles?.display_name}" da comunidade?`)) removeMutation.mutate(m.id) }}
                   className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
                   title="Remover"
                 >

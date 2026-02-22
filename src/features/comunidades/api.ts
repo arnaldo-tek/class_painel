@@ -61,7 +61,7 @@ export async function deleteComunidade(id: string) {
 export async function fetchMembros(comunidadeId: string) {
   const { data, error } = await supabase
     .from('comunidade_membros')
-    .select('*, profiles(nome, email, foto)')
+    .select('*, profiles(display_name, email, photo_url)')
     .eq('comunidade_id', comunidadeId)
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -89,7 +89,7 @@ export async function removeMembro(id: string) {
 export async function fetchMensagens(comunidadeId: string) {
   const { data, error } = await supabase
     .from('comunidade_mensagens')
-    .select('*, profiles(nome, foto)')
+    .select('*, profiles(display_name, photo_url)')
     .eq('comunidade_id', comunidadeId)
     .order('created_at', { ascending: false })
   if (error) throw error

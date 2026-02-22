@@ -17,6 +17,7 @@ import { CategoriasPage } from '@/features/categorias/CategoriasPage'
 import { FiltrosPage } from '@/features/filtros/FiltrosPage'
 import { PacotesPage } from '@/features/pacotes/PacotesPage'
 import { ProfessoresPage } from '@/features/professores/ProfessoresPage'
+import { ProfessorDetailPage } from '@/features/professores/ProfessorDetailPage'
 import { AlunosPage } from '@/features/alunos/AlunosPage'
 import { ColaboradoresPage } from '@/features/colaboradores/ColaboradoresPage'
 import { VendasPage } from '@/features/vendas/VendasPage'
@@ -74,6 +75,7 @@ const categoriasRoute = createRoute({ getParentRoute: () => protectedRoute, path
 const filtrosRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/filtros', component: FiltrosPage })
 const pacotesRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/pacotes', component: PacotesPage })
 const professoresRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/professores', component: ProfessoresPage })
+const professorDetailRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/professores/$professorId', component: ProfessorDetailPage })
 const alunosRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/alunos', component: AlunosPage })
 const colaboradoresRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/colaboradores', component: ColaboradoresPage })
 
@@ -114,7 +116,7 @@ const routeTree = rootRoute.addChildren([
   protectedRoute.addChildren([
     dashboardRoute,
     cursosRoute, cursoNovoRoute, cursoDetailRoute, cursoEditarRoute,
-    categoriasRoute, filtrosRoute, pacotesRoute, professoresRoute, alunosRoute, colaboradoresRoute,
+    categoriasRoute, filtrosRoute, pacotesRoute, professoresRoute, professorDetailRoute, alunosRoute, colaboradoresRoute,
     vendasRoute, cuponsRoute,
     noticiasRoute, editaisRoute, audioCursosRoute, documentosRoute, publicidadeRoute, tutoriaisRoute,
     comunidadesRoute,

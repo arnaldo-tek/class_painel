@@ -6,6 +6,11 @@ export type ProfessorProfile = Tables<'professor_profiles'> & {
   profiles: { email: string; display_name: string | null; phone_number: string | null } | null
 }
 
+export type Avaliacao = Tables<'avaliacoes'> & {
+  profiles: { display_name: string | null; email: string } | null
+  cursos: { nome: string } | null
+}
+
 export async function fetchProfessores(status?: ApprovalStatus) {
   let query = supabase
     .from('professor_profiles')
@@ -61,6 +66,33 @@ export async function updateProfessor(id: string, updates: Partial<Tables<'profe
   return data
 }
 
+export interface CreateProfessorData {
+  email: string
+  password: string
+  nome_professor: string
+  telefone: string
+  cpf_cnpj: string
+  disciplina: string
+}
+
+export async function createProfessor(data: CreateProfessorData) {
+  const { data: result, error } = await supabase.functions.invoke('manage-professor', {
+    body: { action: 'create', ...data },
+  })
+  if (error) throw new Error(error.message)
+  if (result?.error) throw new Error(result.error)
+  return result
+}
+
+export async function deleteProfessor(id: string) {
+  const { error } = await supabase
+    .from('professor_profiles')
+    .delete()
+    .eq('id', id)
+
+  if (error) throw error
+}
+
 export async function fetchProfessorCursos(professorId: string) {
   const { data, error } = await supabase
     .from('cursos')
@@ -70,4 +102,15 @@ export async function fetchProfessorCursos(professorId: string) {
 
   if (error) throw error
   return data ?? []
+}
+
+export async function fetchProfessorAvaliacoes(professorId: string) {
+  const { data, error } = await supabase
+    .from('avaliacoes')
+    .select('*, profiles!avaliacoes_user_id_fkey(display_name, email), cursos!avaliacoes_curso_id_fkey(nome)')
+    .eq('professor_id', professorId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as Avaliacao[]
 }

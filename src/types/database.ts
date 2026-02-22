@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -333,27 +313,49 @@ export type Database = {
       }
       cargos: {
         Row: {
-          id: string
-          nome: string
           categoria_id: string | null
           escolaridade_id: string | null
+          id: string
+          nome: string
           orgao_id: string | null
         }
         Insert: {
-          id?: string
-          nome: string
           categoria_id?: string | null
           escolaridade_id?: string | null
+          id?: string
+          nome: string
           orgao_id?: string | null
         }
         Update: {
-          id?: string
-          nome?: string
           categoria_id?: string | null
           escolaridade_id?: string | null
+          id?: string
+          nome?: string
           orgao_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cargos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargos_escolaridade_id_fkey"
+            columns: ["escolaridade_id"]
+            isOneToOne: false
+            referencedRelation: "escolaridades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cargos_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       categorias: {
         Row: {
@@ -369,7 +371,7 @@ export type Database = {
           filtro_orgao_editais_noticias: boolean | null
           id: string
           nome: string
-          tipo: string
+          tipo: Database["public"]["Enums"]["categoria_tipo"]
         }
         Insert: {
           created_at?: string | null
@@ -384,7 +386,7 @@ export type Database = {
           filtro_orgao_editais_noticias?: boolean | null
           id?: string
           nome: string
-          tipo: string
+          tipo: Database["public"]["Enums"]["categoria_tipo"]
         }
         Update: {
           created_at?: string | null
@@ -399,7 +401,7 @@ export type Database = {
           filtro_orgao_editais_noticias?: boolean | null
           id?: string
           nome?: string
-          tipo?: string
+          tipo?: Database["public"]["Enums"]["categoria_tipo"]
         }
         Relationships: []
       }
@@ -550,119 +552,6 @@ export type Database = {
           },
         ]
       }
-      comunidades: {
-        Row: {
-          id: string
-          nome: string
-          imagem: string | null
-          categoria_id: string | null
-          regras: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          nome: string
-          imagem?: string | null
-          categoria_id?: string | null
-          regras?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          nome?: string
-          imagem?: string | null
-          categoria_id?: string | null
-          regras?: string | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comunidades_categoria_id_fkey"
-            columns: ["categoria_id"]
-            isOneToOne: false
-            referencedRelation: "categorias"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      comunidade_membros: {
-        Row: {
-          id: string
-          comunidade_id: string
-          user_id: string
-          suspenso: boolean | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          comunidade_id: string
-          user_id: string
-          suspenso?: boolean | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          comunidade_id?: string
-          user_id?: string
-          suspenso?: boolean | null
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comunidade_membros_comunidade_id_fkey"
-            columns: ["comunidade_id"]
-            isOneToOne: false
-            referencedRelation: "comunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comunidade_membros_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      comunidade_mensagens: {
-        Row: {
-          id: string
-          comunidade_id: string
-          user_id: string
-          texto: string
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          comunidade_id: string
-          user_id: string
-          texto: string
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          comunidade_id?: string
-          user_id?: string
-          texto?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comunidade_mensagens_comunidade_id_fkey"
-            columns: ["comunidade_id"]
-            isOneToOne: false
-            referencedRelation: "comunidades"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comunidade_mensagens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       comentarios: {
         Row: {
           comentario: string
@@ -717,6 +606,119 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comunidade_membros: {
+        Row: {
+          comunidade_id: string
+          created_at: string | null
+          id: string
+          suspenso: boolean | null
+          user_id: string
+        }
+        Insert: {
+          comunidade_id: string
+          created_at?: string | null
+          id?: string
+          suspenso?: boolean | null
+          user_id: string
+        }
+        Update: {
+          comunidade_id?: string
+          created_at?: string | null
+          id?: string
+          suspenso?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_membros_comunidade_id_fkey"
+            columns: ["comunidade_id"]
+            isOneToOne: false
+            referencedRelation: "comunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_membros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comunidade_mensagens: {
+        Row: {
+          comunidade_id: string
+          created_at: string | null
+          id: string
+          texto: string
+          user_id: string
+        }
+        Insert: {
+          comunidade_id: string
+          created_at?: string | null
+          id?: string
+          texto: string
+          user_id: string
+        }
+        Update: {
+          comunidade_id?: string
+          created_at?: string | null
+          id?: string
+          texto?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidade_mensagens_comunidade_id_fkey"
+            columns: ["comunidade_id"]
+            isOneToOne: false
+            referencedRelation: "comunidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comunidade_mensagens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comunidades: {
+        Row: {
+          categoria_id: string | null
+          created_at: string | null
+          id: string
+          imagem: string | null
+          nome: string
+          regras: string | null
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string | null
+          id?: string
+          imagem?: string | null
+          nome: string
+          regras?: string | null
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string | null
+          id?: string
+          imagem?: string | null
+          nome?: string
+          regras?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comunidades_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
             referencedColumns: ["id"]
           },
         ]
@@ -886,36 +888,79 @@ export type Database = {
       }
       disciplinas: {
         Row: {
-          id: string
-          nome: string
+          cargo_id: string | null
           categoria_id: string | null
           esfera_id: string | null
           estado_id: string | null
+          id: string
           municipio_id: string | null
+          nome: string
           orgao_id: string | null
-          cargo_id: string | null
         }
         Insert: {
-          id?: string
-          nome: string
+          cargo_id?: string | null
           categoria_id?: string | null
           esfera_id?: string | null
           estado_id?: string | null
+          id?: string
           municipio_id?: string | null
+          nome: string
           orgao_id?: string | null
-          cargo_id?: string | null
         }
         Update: {
-          id?: string
-          nome?: string
+          cargo_id?: string | null
           categoria_id?: string | null
           esfera_id?: string | null
           estado_id?: string | null
+          id?: string
           municipio_id?: string | null
+          nome?: string
           orgao_id?: string | null
-          cargo_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "disciplinas_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinas_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinas_esfera_id_fkey"
+            columns: ["esfera_id"]
+            isOneToOne: false
+            referencedRelation: "esferas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinas_estado_id_fkey"
+            columns: ["estado_id"]
+            isOneToOne: false
+            referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinas_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disciplinas_orgao_id_fkey"
+            columns: ["orgao_id"]
+            isOneToOne: false
+            referencedRelation: "orgaos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documento_professors: {
         Row: {
@@ -1105,28 +1150,28 @@ export type Database = {
       }
       estados: {
         Row: {
+          codigo_ibge: string | null
           id: string
           imagem: string | null
           nome: string
-          uf: string | null
-          codigo_ibge: string | null
           regiao: string | null
+          uf: string | null
         }
         Insert: {
+          codigo_ibge?: string | null
           id?: string
           imagem?: string | null
           nome: string
-          uf?: string | null
-          codigo_ibge?: string | null
           regiao?: string | null
+          uf?: string | null
         }
         Update: {
+          codigo_ibge?: string | null
           id?: string
           imagem?: string | null
           nome?: string
-          uf?: string | null
-          codigo_ibge?: string | null
           regiao?: string | null
+          uf?: string | null
         }
         Relationships: []
       }
@@ -1603,19 +1648,25 @@ export type Database = {
       }
       municipios: {
         Row: {
+          codigo_ibge: string | null
           estado_id: string | null
           id: string
           nome: string
+          uf: string | null
         }
         Insert: {
+          codigo_ibge?: string | null
           estado_id?: string | null
           id?: string
           nome: string
+          uf?: string | null
         }
         Update: {
+          codigo_ibge?: string | null
           estado_id?: string | null
           id?: string
           nome?: string
+          uf?: string | null
         }
         Relationships: [
           {
@@ -1756,33 +1807,69 @@ export type Database = {
       }
       orgaos: {
         Row: {
-          id: string
-          nome: string
           categoria_id: string | null
+          escolaridade_id: string | null
           esfera_id: string | null
           estado_id: string | null
+          id: string
           municipio_id: string | null
-          escolaridade_id: string | null
+          nome: string
         }
         Insert: {
-          id?: string
-          nome: string
           categoria_id?: string | null
+          escolaridade_id?: string | null
           esfera_id?: string | null
           estado_id?: string | null
+          id?: string
           municipio_id?: string | null
-          escolaridade_id?: string | null
+          nome: string
         }
         Update: {
-          id?: string
-          nome?: string
           categoria_id?: string | null
+          escolaridade_id?: string | null
           esfera_id?: string | null
           estado_id?: string | null
+          id?: string
           municipio_id?: string | null
-          escolaridade_id?: string | null
+          nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orgaos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orgaos_escolaridade_id_fkey"
+            columns: ["escolaridade_id"]
+            isOneToOne: false
+            referencedRelation: "escolaridades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orgaos_esfera_id_fkey"
+            columns: ["esfera_id"]
+            isOneToOne: false
+            referencedRelation: "esferas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orgaos_estado_id_fkey"
+            columns: ["estado_id"]
+            isOneToOne: false
+            referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orgaos_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       package_access: {
         Row: {
@@ -2078,6 +2165,7 @@ export type Database = {
           created_at: string | null
           curriculo_url: string | null
           data_nascimento: string | null
+          deleted_at: string | null
           descricao: string | null
           descricao_contratar_mentorias: string | null
           descricao_mentorias: string | null
@@ -2092,6 +2180,7 @@ export type Database = {
           id: string
           imagens_capa: string[] | null
           instagram: string | null
+          is_blocked: boolean | null
           nome_professor: string
           numero_casa_ap: string | null
           pagarme_receiver_id: string | null
@@ -2122,6 +2211,7 @@ export type Database = {
           created_at?: string | null
           curriculo_url?: string | null
           data_nascimento?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           descricao_contratar_mentorias?: string | null
           descricao_mentorias?: string | null
@@ -2136,6 +2226,7 @@ export type Database = {
           id?: string
           imagens_capa?: string[] | null
           instagram?: string | null
+          is_blocked?: boolean | null
           nome_professor: string
           numero_casa_ap?: string | null
           pagarme_receiver_id?: string | null
@@ -2166,6 +2257,7 @@ export type Database = {
           created_at?: string | null
           curriculo_url?: string | null
           data_nascimento?: string | null
+          deleted_at?: string | null
           descricao?: string | null
           descricao_contratar_mentorias?: string | null
           descricao_mentorias?: string | null
@@ -2180,6 +2272,7 @@ export type Database = {
           id?: string
           imagens_capa?: string[] | null
           instagram?: string | null
+          is_blocked?: boolean | null
           nome_professor?: string
           numero_casa_ap?: string | null
           pagarme_receiver_id?: string | null
@@ -2520,19 +2613,19 @@ export type Database = {
       subcategorias: {
         Row: {
           categoria_id: string | null
-          disciplina: string | null
+          disciplina_id: string | null
           id: string
           nome: string
         }
         Insert: {
           categoria_id?: string | null
-          disciplina?: string | null
+          disciplina_id?: string | null
           id?: string
           nome: string
         }
         Update: {
           categoria_id?: string | null
-          disciplina?: string | null
+          disciplina_id?: string | null
           id?: string
           nome?: string
         }
@@ -2542,6 +2635,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subcategorias_disciplina_id_fkey"
+            columns: ["disciplina_id"]
+            isOneToOne: false
+            referencedRelation: "disciplinas"
             referencedColumns: ["id"]
           },
         ]
@@ -2572,6 +2672,13 @@ export type Database = {
           parent_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "subpastas_leis_pacote_lei_id_fkey"
+            columns: ["pacote_lei_id"]
+            isOneToOne: false
+            referencedRelation: "pacotes_leis"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subpastas_leis_parent_id_fkey"
             columns: ["parent_id"]
@@ -2657,6 +2764,8 @@ export type Database = {
           created_at: string | null
           descricao: string | null
           id: string
+          pdf: string | null
+          tipo_tutorial: string | null
           titulo: string | null
           video: string | null
         }
@@ -2664,6 +2773,8 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           id?: string
+          pdf?: string | null
+          tipo_tutorial?: string | null
           titulo?: string | null
           video?: string | null
         }
@@ -2671,6 +2782,8 @@ export type Database = {
           created_at?: string | null
           descricao?: string | null
           id?: string
+          pdf?: string | null
+          tipo_tutorial?: string | null
           titulo?: string | null
           video?: string | null
         }
@@ -2781,6 +2894,7 @@ export type Database = {
     }
     Enums: {
       approval_status: "em_analise" | "aprovado" | "reprovado"
+      categoria_tipo: "curso" | "noticia" | "edital" | "pacote"
       order_status: "pending" | "paid" | "failed" | "refunded" | "cancelled"
       user_role: "admin" | "professor" | "colaborador" | "aluno"
     }
@@ -2908,15 +3022,12 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       approval_status: ["em_analise", "aprovado", "reprovado"],
+      categoria_tipo: ["curso", "noticia", "edital", "pacote"],
       order_status: ["pending", "paid", "failed", "refunded", "cancelled"],
       user_role: ["admin", "professor", "colaborador", "aluno"],
     },
   },
 } as const
-

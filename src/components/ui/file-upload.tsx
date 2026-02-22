@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Upload, X, FileText, Image as ImageIcon, Loader2 } from 'lucide-react'
+import { Upload, X, FileText, Image as ImageIcon, Loader2, Video } from 'lucide-react'
 
 interface FileUploadProps {
   label: string
@@ -7,7 +7,7 @@ interface FileUploadProps {
   value: string | null
   onChange: (url: string | null) => void
   onUpload: (file: File) => Promise<string>
-  type?: 'image' | 'pdf'
+  type?: 'image' | 'pdf' | 'video'
 }
 
 export function FileUpload({ label, accept, value, onChange, onUpload, type = 'image' }: FileUploadProps) {
@@ -34,6 +34,8 @@ export function FileUpload({ label, accept, value, onChange, onUpload, type = 'i
     e.target.value = ''
   }
 
+  const typeLabel = type === 'image' ? 'imagem' : type === 'video' ? 'vídeo' : 'PDF'
+
   if (value) {
     return (
       <div className="space-y-1">
@@ -41,6 +43,8 @@ export function FileUpload({ label, accept, value, onChange, onUpload, type = 'i
         <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-2">
           {type === 'image' ? (
             <img src={value} alt="" className="h-32 w-full rounded object-cover" />
+          ) : type === 'video' ? (
+            <video src={value} className="h-32 w-full rounded object-cover" controls preload="metadata" />
           ) : (
             <div className="flex items-center gap-2 py-2 px-3">
               <FileText className="h-5 w-5 text-red-500" />
@@ -72,10 +76,12 @@ export function FileUpload({ label, accept, value, onChange, onUpload, type = 'i
           <Loader2 className="h-8 w-8 animate-spin" />
         ) : type === 'image' ? (
           <ImageIcon className="h-8 w-8" />
+        ) : type === 'video' ? (
+          <Video className="h-8 w-8" />
         ) : (
           <Upload className="h-8 w-8" />
         )}
-        <span>{uploading ? 'Enviando...' : `Clique para adicionar ${type === 'image' ? 'imagem' : 'PDF'}`}</span>
+        <span>{uploading ? 'Enviando...' : `Clique para adicionar ${typeLabel}`}</span>
       </button>
       <input ref={inputRef} type="file" accept={accept} onChange={handleChange} className="hidden" />
       {error && <p className="text-xs text-red-600">{error}</p>}
