@@ -31,7 +31,6 @@ Deno.serve(async (req) => {
       if (!email || !password) return errorResponse('Email e senha são obrigatórios')
       if (!nome_professor) return errorResponse('Nome do professor é obrigatório')
 
-      // Create auth user
       const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
         email,
         password,
@@ -47,14 +46,11 @@ Deno.serve(async (req) => {
 
       const userId = newUser.user.id
 
-      // Add professor role
       const { error: roleErr } = await admin
         .from('user_roles')
         .insert({ user_id: userId, role: 'professor' })
-
       if (roleErr) throw roleErr
 
-      // Create professor_profiles
       const { error: profErr } = await admin
         .from('professor_profiles')
         .insert({
@@ -66,13 +62,94 @@ Deno.serve(async (req) => {
           disciplina: disciplina || null,
           approval_status: 'em_analise',
         })
-
       if (profErr) throw profErr
 
       return jsonResponse({ user_id: userId })
     }
 
-    return errorResponse('Ação inválida. Use: create')
+    if (action === 'block') {
+      const { professor_id } = body
+      if (!professor_id) return errorResponse('professor_id é obrigatório')
+
+      // Get user_id from professor_profiles
+      const { data: prof, error: fetchErr } = await admin
+        .from('professor_profiles')
+        .select('user_id')
+        .eq('id', professor_id)
+        .single()
+      if (fetchErr || !prof) return errorResponse('Professor não encontrado')
+
+      // Ban auth user (87600h = 10 years, effectively permanent)
+      const { error: banErr } = await admin.auth.admin.updateUserById(prof.user_id, {
+        ban_duration: '87600h',
+      })
+      if (banErr) throw banErr
+
+      // Mark as blocked
+      const { error: updateErr } = await admin
+        .from('professor_profiles')
+        .update({ is_blocked: true })
+        .eq('id', professor_id)
+      if (updateErr) throw updateErr
+
+      return jsonResponse({ success: true })
+    }
+
+    if (action === 'unblock') {
+      const { professor_id } = body
+      if (!professor_id) return errorResponse('professor_id é obrigatório')
+
+      const { data: prof, error: fetchErr } = await admin
+        .from('professor_profiles')
+        .select('user_id')
+        .eq('id', professor_id)
+        .single()
+      if (fetchErr || !prof) return errorResponse('Professor não encontrado')
+
+      // Unban auth user
+      const { error: banErr } = await admin.auth.admin.updateUserById(prof.user_id, {
+        ban_duration: 'none',
+      })
+      if (banErr) throw banErr
+
+      // Unmark blocked
+      const { error: updateErr } = await admin
+        .from('professor_profiles')
+        .update({ is_blocked: false })
+        .eq('id', professor_id)
+      if (updateErr) throw updateErr
+
+      return jsonResponse({ success: true })
+    }
+
+    if (action === 'delete') {
+      const { professor_id } = body
+      if (!professor_id) return errorResponse('professor_id é obrigatório')
+
+      const { data: prof, error: fetchErr } = await admin
+        .from('professor_profiles')
+        .select('user_id')
+        .eq('id', professor_id)
+        .single()
+      if (fetchErr || !prof) return errorResponse('Professor não encontrado')
+
+      // Ban auth user (soft delete = block access + set deleted_at)
+      const { error: banErr } = await admin.auth.admin.updateUserById(prof.user_id, {
+        ban_duration: '87600h',
+      })
+      if (banErr) throw banErr
+
+      // Soft delete
+      const { error: updateErr } = await admin
+        .from('professor_profiles')
+        .update({ deleted_at: new Date().toISOString(), is_blocked: true })
+        .eq('id', professor_id)
+      if (updateErr) throw updateErr
+
+      return jsonResponse({ success: true })
+    }
+
+    return errorResponse('Ação inválida. Use: create, block, unblock, delete')
   } catch (err) {
     console.error('manage-professor error:', err)
     return errorResponse(err.message ?? 'Erro interno', 500)

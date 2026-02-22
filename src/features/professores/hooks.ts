@@ -3,6 +3,7 @@ import type { ApprovalStatus } from '@/types/enums'
 import {
   fetchProfessores, fetchProfessor, updateProfessorStatus, updateProfessor,
   fetchProfessorCursos, deleteProfessor, fetchProfessorAvaliacoes, createProfessor,
+  blockProfessor, unblockProfessor,
 } from './api'
 import type { CreateProfessorData } from './api'
 
@@ -77,6 +78,28 @@ export function useDeleteProfessor() {
     mutationFn: (id: string) => deleteProfessor(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['professores'] })
+    },
+  })
+}
+
+export function useBlockProfessor() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => blockProfessor(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ['professores'] })
+      qc.invalidateQueries({ queryKey: ['professor', id] })
+    },
+  })
+}
+
+export function useUnblockProfessor() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => unblockProfessor(id),
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: ['professores'] })
+      qc.invalidateQueries({ queryKey: ['professor', id] })
     },
   })
 }

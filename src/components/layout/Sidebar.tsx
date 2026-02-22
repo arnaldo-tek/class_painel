@@ -4,7 +4,7 @@ import {
   LayoutDashboard, BookOpen, Tags, Package, GraduationCap, Users,
   UserCog, DollarSign, Ticket, Newspaper, FileText, Headphones,
   FolderOpen, Megaphone, PlayCircle, LifeBuoy, MessageSquare,
-  MessageCircle, SlidersHorizontal, ChevronDown, ChevronRight, LogOut, Menu, X,
+  MessageCircle, SlidersHorizontal, HelpCircle, ChevronDown, ChevronRight, LogOut, Menu, X,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { navigation } from '@/config/navigation'
@@ -19,7 +19,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, BookOpen, Tags, Package, GraduationCap, Users,
   UserCog, DollarSign, Ticket, Newspaper, FileText, Headphones,
   FolderOpen, Megaphone, PlayCircle, LifeBuoy, MessageSquare,
-  MessageCircle, SlidersHorizontal,
+  MessageCircle, SlidersHorizontal, HelpCircle,
 }
 
 function NavIcon({ name, className }: { name: string; className?: string }) {

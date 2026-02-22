@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft, CheckCircle, XCircle, Trash2, Star, Save, Loader2,
-  User, Image, Landmark, BookOpen, Users, MessageSquare,
+  User, Image, Landmark, BookOpen, Users, MessageSquare, Ban, ShieldCheck,
 } from 'lucide-react'
 import {
   useProfessor, useProfessorCursos, useProfessorAvaliacoes,
   useUpdateProfessor, useUpdateProfessorStatus, useDeleteProfessor,
+  useBlockProfessor, useUnblockProfessor,
 } from './hooks'
 import type { ProfessorProfile, Avaliacao } from './api'
 import { Button } from '@/components/ui/button'
@@ -39,8 +40,11 @@ export function ProfessorDetailPage() {
   const { data: professor, isLoading } = useProfessor(professorId)
   const [activeTab, setActiveTab] = useState<TabKey>('dados')
   const [deleteModal, setDeleteModal] = useState(false)
+  const [blockModal, setBlockModal] = useState(false)
   const updateStatus = useUpdateProfessorStatus()
   const deleteMutation = useDeleteProfessor()
+  const blockMutation = useBlockProfessor()
+  const unblockMutation = useUnblockProfessor()
 
   if (isLoading) {
     return (
@@ -57,11 +61,22 @@ export function ProfessorDetailPage() {
   }
 
   const badge = statusBadge[professor.approval_status ?? 'em_analise']
+  const isBlocked = professor.is_blocked ?? false
 
   function handleDelete() {
     deleteMutation.mutate(professorId, {
       onSuccess: () => navigate({ to: '/professores' }),
     })
+  }
+
+  function handleBlock() {
+    blockMutation.mutate(professorId, {
+      onSuccess: () => setBlockModal(false),
+    })
+  }
+
+  function handleUnblock() {
+    unblockMutation.mutate(professorId)
   }
 
   return (
@@ -90,6 +105,7 @@ export function ProfessorDetailPage() {
             <h1 className="text-2xl font-bold text-gray-900">{professor.nome_professor}</h1>
             <div className="mt-1 flex items-center gap-2">
               <Badge variant={badge.variant}>{badge.label}</Badge>
+              {isBlocked && <Badge variant="danger">Bloqueado</Badge>}
               {professor.disciplina && (
                 <span className="text-sm text-gray-500">{professor.disciplina}</span>
               )}
@@ -126,9 +142,29 @@ export function ProfessorDetailPage() {
               Reprovar
             </Button>
           )}
+          {isBlocked ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleUnblock}
+              disabled={unblockMutation.isPending}
+            >
+              <ShieldCheck className="mr-1.5 h-4 w-4 text-green-600" />
+              {unblockMutation.isPending ? 'Desbloqueando...' : 'Desbloquear'}
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setBlockModal(true)}
+            >
+              <Ban className="mr-1.5 h-4 w-4 text-orange-600" />
+              Bloquear
+            </Button>
+          )}
           <Button variant="danger" size="sm" onClick={() => setDeleteModal(true)}>
             <Trash2 className="mr-1.5 h-4 w-4" />
-            Deletar
+            Excluir
           </Button>
         </div>
       </div>
@@ -166,10 +202,30 @@ export function ProfessorDetailPage() {
         {activeTab === 'avaliacoes' && <TabAvaliacoes professorId={professorId} />}
       </div>
 
-      {/* Delete modal */}
-      <Modal open={deleteModal} onClose={() => setDeleteModal(false)} title="Deletar Professor">
+      {/* Block modal */}
+      <Modal open={blockModal} onClose={() => setBlockModal(false)} title="Bloquear Professor">
         <p className="text-sm text-gray-600">
-          Tem certeza que deseja deletar <strong>{professor.nome_professor}</strong>? Esta ação não pode ser desfeita.
+          Tem certeza que deseja bloquear <strong>{professor.nome_professor}</strong>? O professor não conseguirá mais acessar a plataforma.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setBlockModal(false)}>
+            Cancelar
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={handleBlock}
+            disabled={blockMutation.isPending}
+          >
+            {blockMutation.isPending ? 'Bloqueando...' : 'Bloquear'}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Delete modal */}
+      <Modal open={deleteModal} onClose={() => setDeleteModal(false)} title="Excluir Professor">
+        <p className="text-sm text-gray-600">
+          Tem certeza que deseja excluir <strong>{professor.nome_professor}</strong>? O acesso será revogado e o professor ficará inativo.
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" size="sm" onClick={() => setDeleteModal(false)}>
@@ -181,7 +237,7 @@ export function ProfessorDetailPage() {
             onClick={handleDelete}
             disabled={deleteMutation.isPending}
           >
-            {deleteMutation.isPending ? 'Deletando...' : 'Deletar'}
+            {deleteMutation.isPending ? 'Excluindo...' : 'Excluir'}
           </Button>
         </div>
       </Modal>

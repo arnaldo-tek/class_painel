@@ -7,6 +7,9 @@ import {
   fetchQuestoesLeis, createQuestaoLei, updateQuestaoLei, deleteQuestaoLei,
   fetchDocumentos, createDocumento, deleteDocumento,
   fetchBanners, createBanner, updateBanner, deleteBanner,
+  fetchPublicidadeAbertura, createPublicidadeAbertura, updatePublicidadeAbertura, deletePublicidadeAbertura,
+  fetchPublicidadeAreaAluno, createPublicidadeAreaAluno, updatePublicidadeAreaAluno, deletePublicidadeAreaAluno,
+  fetchPublicidadeAudioCurso, createPublicidadeAudioCurso, updatePublicidadeAudioCurso, deletePublicidadeAudioCurso,
   fetchTutoriais, createTutorial, updateTutorial, deleteTutorial,
 } from './content-api'
 
@@ -151,6 +154,57 @@ export function useUpdateBanner() {
 export function useDeleteBanner() {
   const qc = useQueryClient()
   return useMutation({ mutationFn: deleteBanner, onSuccess: () => qc.invalidateQueries({ queryKey: ['banners'] }) })
+}
+
+// Publicidade Abertura
+export function usePublicidadeAbertura() {
+  return useQuery({ queryKey: ['publicidade-abertura'], queryFn: fetchPublicidadeAbertura })
+}
+export function useCreatePublicidadeAbertura() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: createPublicidadeAbertura, onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-abertura'] }) })
+}
+export function useUpdatePublicidadeAbertura() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: ({ id, ...u }: { id: string } & Record<string, unknown>) => updatePublicidadeAbertura(id, u), onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-abertura'] }) })
+}
+export function useDeletePublicidadeAbertura() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: deletePublicidadeAbertura, onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-abertura'] }) })
+}
+
+// Publicidade Area Aluno
+export function usePublicidadeAreaAluno() {
+  return useQuery({ queryKey: ['publicidade-area-aluno'], queryFn: fetchPublicidadeAreaAluno })
+}
+export function useCreatePublicidadeAreaAluno() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: createPublicidadeAreaAluno, onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-area-aluno'] }) })
+}
+export function useUpdatePublicidadeAreaAluno() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: ({ id, ...u }: { id: string } & Record<string, unknown>) => updatePublicidadeAreaAluno(id, u), onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-area-aluno'] }) })
+}
+export function useDeletePublicidadeAreaAluno() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: deletePublicidadeAreaAluno, onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-area-aluno'] }) })
+}
+
+// Publicidade Audio Curso
+export function usePublicidadeAudioCurso() {
+  return useQuery({ queryKey: ['publicidade-audio-curso'], queryFn: fetchPublicidadeAudioCurso })
+}
+export function useCreatePublicidadeAudioCurso() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: createPublicidadeAudioCurso, onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-audio-curso'] }) })
+}
+export function useUpdatePublicidadeAudioCurso() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: ({ id, ...u }: { id: string } & Record<string, unknown>) => updatePublicidadeAudioCurso(id, u), onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-audio-curso'] }) })
+}
+export function useDeletePublicidadeAudioCurso() {
+  const qc = useQueryClient()
+  return useMutation({ mutationFn: deletePublicidadeAudioCurso, onSuccess: () => qc.invalidateQueries({ queryKey: ['publicidade-audio-curso'] }) })
 }
 
 // Tutoriais

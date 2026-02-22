@@ -31,6 +31,7 @@ import { TutoriaisPage } from '@/features/conteudo/TutoriaisPage'
 import { ComunidadesPage } from '@/features/comunidades/ComunidadesPage'
 import { SuporteAlunosPage, SuporteProfessoresPage } from '@/features/suporte/SuportePage'
 import { ChatPage } from '@/features/chat/ChatPage'
+import { FaqPage } from '@/features/faq/FaqPage'
 
 // Root route
 const rootRoute = createRootRoute({
@@ -91,6 +92,9 @@ const documentosRoute = createRoute({ getParentRoute: () => protectedRoute, path
 const publicidadeRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/publicidade', component: PublicidadePage })
 const tutoriaisRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/tutoriais', component: TutoriaisPage })
 
+// FAQ
+const faqRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/faq', component: FaqPage })
+
 // Comunidades
 const comunidadesRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/comunidades', component: ComunidadesPage })
 
@@ -119,6 +123,7 @@ const routeTree = rootRoute.addChildren([
     categoriasRoute, filtrosRoute, pacotesRoute, professoresRoute, professorDetailRoute, alunosRoute, colaboradoresRoute,
     vendasRoute, cuponsRoute,
     noticiasRoute, editaisRoute, audioCursosRoute, documentosRoute, publicidadeRoute, tutoriaisRoute,
+    faqRoute,
     comunidadesRoute,
     suporteAlunosRoute, suporteProfessoresRoute, chatRoute,
   ]),

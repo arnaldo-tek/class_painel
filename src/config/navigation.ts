@@ -140,6 +140,13 @@ export const navigation: NavItem[] = [
     permission: 'manage_tutorials',
   },
   {
+    label: 'FAQ',
+    path: '/faq',
+    icon: 'HelpCircle',
+    roles: ['admin', 'colaborador'],
+    permission: 'manage_student_support',
+  },
+  {
     label: 'Suporte',
     path: '/suporte',
     icon: 'LifeBuoy',

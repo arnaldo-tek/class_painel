@@ -213,6 +213,84 @@ export async function deleteBanner(id: string) {
   if (error) throw error
 }
 
+// === Publicidade Abertura ===
+export type PublicidadeAbertura = Tables<'publicidade_abertura'>
+
+export async function fetchPublicidadeAbertura() {
+  const { data, error } = await supabase.from('publicidade_abertura').select('*').order('plataforma' as never)
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createPublicidadeAbertura(b: { imagem: string; link?: string | null; is_active?: boolean; plataforma?: string }) {
+  const { data, error } = await supabase.from('publicidade_abertura').insert(b as never).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function updatePublicidadeAbertura(id: string, updates: Partial<PublicidadeAbertura> & { plataforma?: string; imagem?: string }) {
+  const { data, error } = await supabase.from('publicidade_abertura').update(updates as never).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deletePublicidadeAbertura(id: string) {
+  const { error } = await supabase.from('publicidade_abertura').delete().eq('id', id)
+  if (error) throw error
+}
+
+// === Publicidade Area Aluno ===
+export type PublicidadeAreaAluno = Tables<'publicidade_area_aluno'>
+
+export async function fetchPublicidadeAreaAluno() {
+  const { data, error } = await supabase.from('publicidade_area_aluno').select('*').order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createPublicidadeAreaAluno(b: { imagem: string; link?: string | null; is_active?: boolean }) {
+  const { data, error } = await supabase.from('publicidade_area_aluno').insert(b).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function updatePublicidadeAreaAluno(id: string, updates: Partial<PublicidadeAreaAluno>) {
+  const { data, error } = await supabase.from('publicidade_area_aluno').update(updates).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deletePublicidadeAreaAluno(id: string) {
+  const { error } = await supabase.from('publicidade_area_aluno').delete().eq('id', id)
+  if (error) throw error
+}
+
+// === Publicidade Audio Curso ===
+export type PublicidadeAudioCurso = Tables<'publicidade_audio_curso'>
+
+export async function fetchPublicidadeAudioCurso() {
+  const { data, error } = await supabase.from('publicidade_audio_curso').select('*').order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createPublicidadeAudioCurso(b: { imagem: string; link?: string | null; is_active?: boolean }) {
+  const { data, error } = await supabase.from('publicidade_audio_curso').insert(b).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function updatePublicidadeAudioCurso(id: string, updates: Partial<PublicidadeAudioCurso>) {
+  const { data, error } = await supabase.from('publicidade_audio_curso').update(updates).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
+export async function deletePublicidadeAudioCurso(id: string) {
+  const { error } = await supabase.from('publicidade_audio_curso').delete().eq('id', id)
+  if (error) throw error
+}
+
 // === Tutoriais ===
 export type Tutorial = Tables<'tutoriais'>
 

@@ -15,6 +15,7 @@ export async function fetchProfessores(status?: ApprovalStatus) {
   let query = supabase
     .from('professor_profiles')
     .select('*, profiles!professor_profiles_user_id_fkey(email, display_name, phone_number)')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (status) {
@@ -84,13 +85,31 @@ export async function createProfessor(data: CreateProfessorData) {
   return result
 }
 
-export async function deleteProfessor(id: string) {
-  const { error } = await supabase
-    .from('professor_profiles')
-    .delete()
-    .eq('id', id)
+export async function deleteProfessor(professorId: string) {
+  const { data: result, error } = await supabase.functions.invoke('manage-professor', {
+    body: { action: 'delete', professor_id: professorId },
+  })
+  if (error) throw new Error(error.message)
+  if (result?.error) throw new Error(result.error)
+  return result
+}
 
-  if (error) throw error
+export async function blockProfessor(professorId: string) {
+  const { data: result, error } = await supabase.functions.invoke('manage-professor', {
+    body: { action: 'block', professor_id: professorId },
+  })
+  if (error) throw new Error(error.message)
+  if (result?.error) throw new Error(result.error)
+  return result
+}
+
+export async function unblockProfessor(professorId: string) {
+  const { data: result, error } = await supabase.functions.invoke('manage-professor', {
+    body: { action: 'unblock', professor_id: professorId },
+  })
+  if (error) throw new Error(error.message)
+  if (result?.error) throw new Error(result.error)
+  return result
 }
 
 export async function fetchProfessorCursos(professorId: string) {
