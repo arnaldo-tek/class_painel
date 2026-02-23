@@ -4,9 +4,34 @@ import type { OrderStatus } from '@/types/enums'
 
 export type Movimentacao = Tables<'movimentacoes'>
 
+// === Pagar.me Orders (source of truth) ===
+
+export interface PagarmeOrder {
+  id: string
+  code: string
+  amount: number
+  status: string
+  created_at: string
+  updated_at: string
+  customer: { id: string; name: string; email: string } | null
+  charges: Array<{
+    id: string
+    amount: number
+    status: string
+    payment_method: string
+    paid_at: string | null
+  }>
+  items: Array<{
+    amount: number
+    description: string
+    quantity: number
+    code: string
+  }>
+}
+
 export interface VendasFilters {
   search?: string
-  status?: OrderStatus
+  status?: string
   professorId?: string
   dateFrom?: string
   dateTo?: string
@@ -15,28 +40,27 @@ export interface VendasFilters {
 }
 
 export async function fetchVendas(filters: VendasFilters) {
-  const { search, status, professorId, dateFrom, dateTo, page = 1, perPage = 20 } = filters
+  const { status, dateFrom, dateTo, page = 1, perPage = 20 } = filters
 
-  let query = supabase
-    .from('movimentacoes')
-    .select('*', { count: 'exact' })
-    .order('created_at', { ascending: false })
+  const body: Record<string, unknown> = {
+    page,
+    size: perPage,
+  }
+  if (status) body.status = status
+  if (dateFrom) body.created_since = `${dateFrom}T00:00:00`
+  if (dateTo) body.created_until = `${dateTo}T23:59:59`
 
-  if (search) query = query.or(`nome_cliente.ilike.%${search}%,email_cliente.ilike.%${search}%`)
-  if (status) query = query.eq('status', status)
-  if (professorId) query = query.eq('professor_id', professorId)
-  if (dateFrom) query = query.gte('created_at', dateFrom)
-  if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
+  const { data: result, error } = await supabase.functions.invoke('payment-orders', { body })
+  if (error) throw new Error(error.message)
+  if (result?.error) throw new Error(result.error)
 
-  const from = (page - 1) * perPage
-  query = query.range(from, from + perPage - 1)
+  const orders = (result?.data ?? []) as PagarmeOrder[]
+  const total = result?.paging?.total ?? orders.length
 
-  const { data, error, count } = await query
-  if (error) throw error
   return {
-    vendas: (data ?? []) as Movimentacao[],
-    total: count ?? 0,
-    totalPages: Math.ceil((count ?? 0) / perPage),
+    vendas: orders,
+    total,
+    totalPages: Math.ceil(total / perPage),
   }
 }
 

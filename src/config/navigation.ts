@@ -134,25 +134,33 @@ export const navigation: NavItem[] = [
     ],
   },
   {
-    label: 'Professores',
+    label: 'Usuários',
     path: '/professores',
-    icon: 'GraduationCap',
-    roles: ['admin', 'colaborador'],
-    permission: 'manage_professors',
-  },
-  {
-    label: 'Alunos',
-    path: '/alunos',
     icon: 'Users',
     roles: ['admin', 'colaborador'],
-    permission: 'manage_students',
-  },
-  {
-    label: 'Colaboradores',
-    path: '/colaboradores',
-    icon: 'UserCog',
-    roles: ['admin'],
-    permission: 'manage_colaboradores',
+    children: [
+      {
+        label: 'Professores',
+        path: '/professores',
+        icon: 'GraduationCap',
+        roles: ['admin', 'colaborador'],
+        permission: 'manage_professors',
+      },
+      {
+        label: 'Alunos',
+        path: '/alunos',
+        icon: 'Users',
+        roles: ['admin', 'colaborador'],
+        permission: 'manage_students',
+      },
+      {
+        label: 'Colaboradores',
+        path: '/colaboradores',
+        icon: 'UserCog',
+        roles: ['admin'],
+        permission: 'manage_colaboradores',
+      },
+    ],
   },
 
   // ─── Vendas (compartilhado) ───────────────────────────────────────────────

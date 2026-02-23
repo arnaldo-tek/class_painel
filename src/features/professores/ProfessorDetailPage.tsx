@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useParams, useNavigate } from '@tanstack/react-router'
 import {
   ArrowLeft, CheckCircle, XCircle, Trash2, Star, Save, Loader2,
@@ -12,6 +12,7 @@ import {
 import {
   useRecipientBalance, useTransferHistory, useRegisterRecipient, useRequestTransfer,
 } from './payment-hooks'
+import { useEstados, useMunicipiosByEstado } from '@/features/filtros/hooks'
 import type { RegisterRecipientData } from './payment-api'
 import type { ProfessorProfile, Avaliacao } from './api'
 import { Button } from '@/components/ui/button'
@@ -580,6 +581,8 @@ function RegisterRecipientModal({
   onClose: () => void
 }) {
   const registerMutation = useRegisterRecipient()
+  const { data: estadosData } = useEstados()
+  const allEstados = estadosData?.items ?? []
   const [form, setForm] = useState({
     type: 'individual' as 'individual' | 'company',
     document: professor.cpf_cnpj ?? '',
@@ -604,8 +607,39 @@ function RegisterRecipientModal({
     account_type: 'checking' as 'checking' | 'savings',
   })
 
+  const selectedEstadoId = allEstados.find((e) => e.nome === form.state)?.id
+  const { data: municipios } = useMunicipiosByEstado(selectedEstadoId)
+
   function onChange(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  function handleEstadoChange(estadoNome: string) {
+    setForm((prev) => ({ ...prev, state: estadoNome, city: '' }))
+  }
+
+  const fetchViaCep = useCallback(async (cep: string) => {
+    const digits = cep.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const data = await res.json()
+      if (data.erro) return
+      const estadoMatch = allEstados.find((e) => e.uf === data.uf)
+      setForm((prev) => ({
+        ...prev,
+        street: data.logradouro || prev.street,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.localidade || prev.city,
+        state: estadoMatch?.nome ?? prev.state,
+      }))
+    } catch { /* ignore */ }
+  }, [allEstados])
+
+  function handleCepChange(value: string) {
+    onChange('zip_code', value)
+    const digits = value.replace(/\D/g, '')
+    if (digits.length === 8) fetchViaCep(digits)
   }
 
   function handleSubmit() {
@@ -678,16 +712,41 @@ function RegisterRecipientModal({
 
         <h3 className="text-sm font-semibold text-gray-700 pt-2">Endereço</h3>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Input label="CEP" value={form.zip_code} onChange={(e) => onChange('zip_code', e.target.value)} />
+          <Input label="CEP" value={form.zip_code} onChange={(e) => handleCepChange(e.target.value)} />
           <Input label="Rua" value={form.street} onChange={(e) => onChange('street', e.target.value)} />
           <Input label="Número" value={form.number} onChange={(e) => onChange('number', e.target.value)} />
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <Input label="Complemento" value={form.complement} onChange={(e) => onChange('complement', e.target.value)} />
           <Input label="Bairro" value={form.neighborhood} onChange={(e) => onChange('neighborhood', e.target.value)} />
-          <Input label="Cidade" value={form.city} onChange={(e) => onChange('city', e.target.value)} />
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700">Estado</label>
+            <select
+              value={form.state}
+              onChange={(e) => handleEstadoChange(e.target.value)}
+              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Selecione o estado</option>
+              {allEstados.map((est) => (
+                <option key={est.id} value={est.nome}>{est.nome}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <Input label="Estado" value={form.state} onChange={(e) => onChange('state', e.target.value)} placeholder="SP" />
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Cidade</label>
+          <select
+            value={form.city}
+            onChange={(e) => onChange('city', e.target.value)}
+            disabled={!form.state}
+            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+          >
+            <option value="">{form.state ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
+            {(municipios ?? []).map((m) => (
+              <option key={m.id} value={m.nome}>{m.nome}</option>
+            ))}
+          </select>
+        </div>
 
         <h3 className="text-sm font-semibold text-gray-700 pt-2">Conta Bancária</h3>
         <div className="grid gap-4 sm:grid-cols-2">

@@ -10,8 +10,7 @@ import {
 } from './hooks'
 import { fetchVendasParaExportar } from './api'
 import { exportVendasToExcel } from './export'
-import type { VendasFilters } from './api'
-import type { OrderStatus } from '@/types/enums'
+import type { VendasFilters, PagarmeOrder } from './api'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -29,16 +28,22 @@ const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pendente' },
   { value: 'paid', label: 'Pago' },
   { value: 'failed', label: 'Falhou' },
-  { value: 'refunded', label: 'Reembolsado' },
-  { value: 'cancelled', label: 'Cancelado' },
+  { value: 'canceled', label: 'Cancelado' },
 ]
 
 const statusBadge: Record<string, { label: string; variant: 'warning' | 'success' | 'danger' | 'info' | 'default' }> = {
   pending: { label: 'Pendente', variant: 'warning' },
   paid: { label: 'Pago', variant: 'success' },
   failed: { label: 'Falhou', variant: 'danger' },
+  canceled: { label: 'Cancelado', variant: 'default' },
   refunded: { label: 'Reembolsado', variant: 'info' },
-  cancelled: { label: 'Cancelado', variant: 'default' },
+}
+
+const paymentMethodLabels: Record<string, string> = {
+  credit_card: 'Cartão',
+  debit_card: 'Débito',
+  pix: 'PIX',
+  boleto: 'Boleto',
 }
 
 type TabKey = 'geral' | 'professor' | 'categoria'
@@ -218,7 +223,7 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
     professorId,
     dateFrom,
     dateTo,
-  }), [filters, search, professorId, dateFrom, dateTo])
+  }), [filters, search, professorId, dateFrom, dateTo]) as VendasFilters
 
   const { data, isLoading } = useVendas(currentFilters)
   const { data: resumo } = useResumoVendas(dateFrom, dateTo, professorId)
@@ -268,7 +273,7 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
           placeholder="Todos os status"
           options={STATUS_OPTIONS}
           value={filters.status ?? ''}
-          onChange={(e) => setFilters((f) => ({ ...f, status: (e.target.value as OrderStatus) || undefined, page: 1 }))}
+          onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value || undefined, page: 1 }))}
         />
         <Button variant="secondary" size="sm" onClick={handleExport} disabled={exporting}>
           <Download className="h-4 w-4 mr-1.5" />
@@ -285,25 +290,31 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
             <TableHeader>
               <TableRow>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Curso/Pacote</TableHead>
+                <TableHead>Itens</TableHead>
                 <TableHead>Valor</TableHead>
-                <TableHead>Taxa</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Data</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.vendas.map((v) => {
-                const badge = statusBadge[v.status ?? 'pending']
+              {data.vendas.map((v: PagarmeOrder) => {
+                const badge = statusBadge[v.status] ?? statusBadge.pending
+                const charge = v.charges?.[0]
+                const paymentMethod = charge?.payment_method
+                  ? (paymentMethodLabels[charge.payment_method] ?? charge.payment_method)
+                  : '—'
+                const itemsDesc = v.items?.map((i) => i.description).join(', ') || '—'
+
                 return (
                   <TableRow key={v.id}>
                     <TableCell>
-                      <p className="font-medium">{v.nome_cliente ?? '—'}</p>
-                      <p className="text-xs text-gray-500">{v.email_cliente}</p>
+                      <p className="font-medium">{v.customer?.name ?? '—'}</p>
+                      <p className="text-xs text-gray-500">{v.customer?.email ?? ''}</p>
                     </TableCell>
-                    <TableCell>{v.nome_curso ?? '—'}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(Number(v.valor))}</TableCell>
-                    <TableCell className="text-gray-500">{formatCurrency(Number(v.taxa_plataforma ?? 0))}</TableCell>
+                    <TableCell className="max-w-[200px] truncate" title={itemsDesc}>{itemsDesc}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(v.amount / 100)}</TableCell>
+                    <TableCell className="text-gray-500">{paymentMethod}</TableCell>
                     <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
                     <TableCell className="text-gray-500">
                       {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}

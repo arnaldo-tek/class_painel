@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, type FormEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { GraduationCap, CheckCircle, XCircle, Star, Search, Plus, Loader2 } from 'lucide-react'
 import { useProfessores, useUpdateProfessorStatus, useCreateProfessor } from './hooks'
+import { useEstados, useMunicipiosByEstado } from '@/features/filtros/hooks'
 import type { ProfessorProfile, CreateProfessorData } from './api'
 import type { ApprovalStatus } from '@/types/enums'
 import { Badge } from '@/components/ui/badge'
@@ -206,8 +207,17 @@ function CreateProfessorModal({ open, onClose }: { open: boolean; onClose: () =>
   const [error, setError] = useState('')
   const [cepLoading, setCepLoading] = useState(false)
 
+  const { data: estadosData } = useEstados()
+  const estados = estadosData?.items ?? []
+  const selectedEstadoId = estados.find((e) => e.nome === form.estado)?.id
+  const { data: municipios } = useMunicipiosByEstado(selectedEstadoId)
+
   function onChange(field: keyof CreateProfessorData, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  function handleEstadoChange(estadoNome: string) {
+    setForm((prev) => ({ ...prev, estado: estadoNome, cidade: '' }))
   }
 
   const fetchViaCep = useCallback(async (cep: string) => {
@@ -218,17 +228,18 @@ function CreateProfessorModal({ open, onClose }: { open: boolean; onClose: () =>
       const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
       const data = await res.json()
       if (data.erro) return
+      const estadoMatch = estados.find((e) => e.uf === data.uf)
       setForm((prev) => ({
         ...prev,
         rua: data.logradouro || prev.rua,
         bairro: data.bairro || prev.bairro,
         cidade: data.localidade || prev.cidade,
-        estado: data.uf || prev.estado,
+        estado: estadoMatch?.nome ?? prev.estado,
       }))
     } catch { /* ignore */ } finally {
       setCepLoading(false)
     }
-  }, [])
+  }, [estados])
 
   function handleCepChange(value: string) {
     onChange('cep', value)
@@ -370,17 +381,33 @@ function CreateProfessorModal({ open, onClose }: { open: boolean; onClose: () =>
               value={form.bairro ?? ''}
               onChange={(e) => onChange('bairro', e.target.value)}
             />
-            <Input
-              label="Cidade"
-              value={form.cidade ?? ''}
-              onChange={(e) => onChange('cidade', e.target.value)}
-            />
-            <Input
-              label="Estado"
-              value={form.estado ?? ''}
-              onChange={(e) => onChange('estado', e.target.value)}
-              placeholder="SP"
-            />
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Estado</label>
+              <select
+                value={form.estado ?? ''}
+                onChange={(e) => handleEstadoChange(e.target.value)}
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">Selecione o estado</option>
+                {estados.map((est) => (
+                  <option key={est.id} value={est.nome}>{est.nome}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Cidade</label>
+              <select
+                value={form.cidade ?? ''}
+                onChange={(e) => onChange('cidade', e.target.value)}
+                disabled={!form.estado}
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400"
+              >
+                <option value="">{form.estado ? 'Selecione a cidade' : 'Selecione o estado primeiro'}</option>
+                {(municipios ?? []).map((m) => (
+                  <option key={m.id} value={m.nome}>{m.nome}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
