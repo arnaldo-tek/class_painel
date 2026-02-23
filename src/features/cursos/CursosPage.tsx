@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Search, Plus, BookOpen, Eye, Pencil, Globe, XCircle, ListVideo } from 'lucide-react'
+import { Search, Plus, BookOpen, Pencil, Globe, XCircle, ListVideo } from 'lucide-react'
 import { useCursos, useProfessores, useCategoriasCurso, useEncerrarCurso, useTogglePublicarCurso } from './hooks'
 import type { CursosFilters, Curso } from './api'
 import { useAuthContext } from '@/contexts/AuthContext'
@@ -59,14 +59,12 @@ export function CursosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Cursos</h1>
-        {!isAdmin && (
-          <Link to="/cursos/novo">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Curso
-            </Button>
-          </Link>
-        )}
+        <Link to="/cursos/novo">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Novo Curso
+          </Button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -143,14 +141,12 @@ export function CursosPage() {
           title="Nenhum curso encontrado"
           description="Crie seu primeiro curso para começar."
           action={
-            !isAdmin ? (
-              <Link to="/cursos/novo">
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Novo Curso
-                </Button>
-              </Link>
-            ) : undefined
+            <Link to="/cursos/novo">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Curso
+              </Button>
+            </Link>
           }
         />
       ) : (
@@ -216,7 +212,7 @@ export function CursosPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        {!isAdmin && !curso.is_encerrado && (
+                        {!curso.is_encerrado && (
                           <Tooltip text={curso.is_publicado ? 'Despublicar' : 'Publicar'}>
                             <button
                               onClick={() => handleTogglePublicar(curso.id, !curso.is_publicado)}
@@ -230,23 +226,21 @@ export function CursosPage() {
                             </button>
                           </Tooltip>
                         )}
-                        <Tooltip text={!isAdmin ? 'Editar curso' : 'Ver detalhes'}>
-                          <Link to={!isAdmin ? "/cursos/$cursoId/editar" : "/cursos/$cursoId"} params={{ cursoId: curso.id }}>
+                        <Tooltip text="Editar curso">
+                          <Link to="/cursos/$cursoId/editar" params={{ cursoId: curso.id }}>
                             <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-                              {!isAdmin ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              <Pencil className="h-4 w-4" />
                             </button>
                           </Link>
                         </Tooltip>
-                        {!isAdmin && (
-                          <Tooltip text="Modulos e aulas">
-                            <Link to="/cursos/$cursoId" params={{ cursoId: curso.id }}>
-                              <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-                                <ListVideo className="h-4 w-4" />
-                              </button>
-                            </Link>
-                          </Tooltip>
-                        )}
-                        {!isAdmin && !curso.is_encerrado && (
+                        <Tooltip text="Modulos e aulas">
+                          <Link to="/cursos/$cursoId" params={{ cursoId: curso.id }}>
+                            <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                              <ListVideo className="h-4 w-4" />
+                            </button>
+                          </Link>
+                        </Tooltip>
+                        {!curso.is_encerrado && (
                           <Tooltip text="Encerrar curso">
                             <button
                               onClick={() => handleEncerrar(curso.id, curso.nome)}

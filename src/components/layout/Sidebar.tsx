@@ -41,7 +41,7 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
       <div
         className={cn(
           'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',
-          'text-gray-400 cursor-not-allowed',
+          'text-slate-500 cursor-not-allowed',
         )}
       >
         <NavIcon name={item.icon} className="h-5 w-5 shrink-0" />
@@ -62,7 +62,7 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
           onClick={() => setExpanded(!expanded)}
           className={cn(
             'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-            'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+            'text-slate-300 hover:bg-white/5 hover:text-white',
           )}
         >
           <NavIcon name={item.icon} className="h-5 w-5 shrink-0" />
@@ -94,8 +94,8 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
       className={cn(
         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
         isActive
-          ? 'bg-blue-50 text-blue-700'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+          ? 'bg-white/10 text-white border-l-2 border-blue-400'
+          : 'text-slate-300 hover:bg-white/5 hover:text-white',
       )}
     >
       <NavIcon name={item.icon} className="h-5 w-5 shrink-0" />
@@ -118,12 +118,12 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'flex h-screen flex-col border-r border-gray-200 bg-white transition-all duration-200',
+        'flex h-screen flex-col border-r border-white/10 bg-gradient-to-b from-slate-900 via-slate-800 to-blue-900 transition-all duration-200',
         collapsed ? 'w-16' : 'w-64',
       )}
     >
       {/* Header */}
-      <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4">
+      <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
         {collapsed ? (
           <img src="/icon.png" alt="S" className="h-8 w-8" />
         ) : (
@@ -131,7 +131,7 @@ export function Sidebar() {
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+          className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white"
         >
           {collapsed ? <Menu className="h-5 w-5" /> : <X className="h-5 w-5" />}
         </button>
@@ -145,10 +145,10 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 p-3">
+      <div className="border-t border-white/10 p-3">
         <button
           onClick={() => signOut()}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
         >
           <LogOut className="h-5 w-5 shrink-0" />
           {!collapsed && <span>Sair</span>}

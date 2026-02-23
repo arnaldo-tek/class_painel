@@ -40,72 +40,44 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left side — Brand image */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
-        {/* Decorative circles */}
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/5 rounded-full" />
-        <div className="absolute -bottom-32 -right-32 w-[500px] h-[500px] bg-white/5 rounded-full" />
-        <div className="absolute top-1/4 right-10 w-64 h-64 bg-white/5 rounded-full" />
+    <div className="relative flex min-h-screen flex-col bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 animate-gradient">
+      {/* Navbar */}
+      <nav className="relative z-20 flex items-center gap-3 px-6 py-4 sm:px-10">
+        <img src="/icon.png" alt="" className="h-9 w-9 rounded-xl" />
+        <span className="text-xl font-bold text-white tracking-tight">Superclasse</span>
+      </nav>
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between p-12 w-full">
-          {/* Logo top */}
-          <div className="flex items-center gap-3">
-            <img src="/icon.png" alt="" className="h-10 w-10 rounded-xl" />
-            <span className="text-xl font-bold text-white">Superclasse</span>
-          </div>
-
-          {/* Center illustration */}
-          <div className="flex flex-col items-center text-center px-8">
-            <img
-              src="/simbolo.png"
-              alt="Superclasse"
-              className="w-40 h-40 mb-8 drop-shadow-2xl"
-            />
-            <h2 className="text-3xl font-bold text-white mb-3">
-              Gerencie sua plataforma educacional
-            </h2>
-            <p className="text-blue-100 text-lg max-w-md leading-relaxed">
-              Cursos, alunos, professores e vendas em um
-              s&oacute; lugar. Simples e poderoso.
-            </p>
-          </div>
-
-          {/* Bottom stats */}
-          <div className="flex gap-8">
-            <div>
-              <p className="text-2xl font-bold text-white">100+</p>
-              <p className="text-sm text-blue-200">Cursos</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">50+</p>
-              <p className="text-sm text-blue-200">Professores</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">10k+</p>
-              <p className="text-sm text-blue-200">Alunos</p>
-            </div>
-          </div>
-        </div>
+      {/* Floating circles */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="animate-float absolute -top-10 -left-10 h-72 w-72 rounded-full bg-white/5" />
+        <div className="animate-float absolute top-1/3 right-10 h-48 w-48 rounded-full bg-white/5" style={{ animationDelay: '2s' }} />
+        <div className="animate-float absolute bottom-20 left-1/4 h-56 w-56 rounded-full bg-white/5" style={{ animationDelay: '4s' }} />
+        <div className="animate-float absolute -bottom-16 -right-16 h-80 w-80 rounded-full bg-white/5" style={{ animationDelay: '1s' }} />
+        <div className="animate-float absolute top-10 left-1/2 h-36 w-36 rounded-full bg-white/5" style={{ animationDelay: '3s' }} />
       </div>
 
-      {/* Right side — Login form */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center bg-white px-6 py-12">
-        <div className="w-full max-w-[400px]">
+      {/* Grid pattern */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        aria-hidden="true"
+        style={{
+          backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      {/* Main content */}
+      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-8">
+        <div className="w-full max-w-[420px] rounded-2xl border border-white/20 bg-white/90 p-8 shadow-2xl backdrop-blur-xl sm:p-10">
           {/* Mobile logo */}
-          <div className="lg:hidden flex justify-center mb-8">
-            <img src="/logo.png" alt="Superclasse" className="h-14" />
+          <div className="sm:hidden flex justify-center mb-6">
+            <img src="/logo.png" alt="Superclasse" className="h-12" />
           </div>
 
           {/* Heading */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Bem-vindo de volta
-            </h1>
-            <p className="mt-2 text-gray-500">
-              Acesse sua conta para continuar
-            </p>
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-bold text-gray-900">Bem-vindo de volta</h1>
+            <p className="mt-2 text-gray-500">Acesse sua conta para continuar</p>
           </div>
 
           {/* Form */}
@@ -192,17 +164,17 @@ export function LoginPage() {
                   Entrando...
                 </span>
               ) : (
-                'Entrar'
+                'Entrar no Painel'
               )}
             </Button>
           </form>
-
-          {/* Footer */}
-          <p className="mt-8 text-center text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} Superclasse. Todos os direitos reservados.
-          </p>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 pb-6 text-center text-sm text-white/50">
+        &copy; {new Date().getFullYear()} Superclasse. Todos os direitos reservados.
+      </footer>
     </div>
   )
 }

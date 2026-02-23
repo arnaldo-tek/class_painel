@@ -30,31 +30,67 @@ export const navigation: NavItem[] = [
     icon: 'UserCircle',
     roles: ['professor'],
   },
+
+  // ─── Conteúdos (compartilhado — submenus filtrados por role) ─────────────
   {
-    label: 'Produtos',
+    label: 'Conteudos',
     path: '/cursos',
-    icon: 'ShoppingBag',
-    roles: ['professor'],
+    icon: 'BookOpen',
+    roles: ['admin', 'professor', 'colaborador'],
     children: [
       {
         label: 'Cursos',
         path: '/cursos',
         icon: 'BookOpen',
+        roles: ['admin', 'professor', 'colaborador'],
+        permission: 'manage_courses',
       },
       {
         label: 'Flashcards',
         path: '/flashcards',
         icon: 'Layers',
+        roles: ['professor'],
         comingSoon: true,
       },
       {
         label: 'Mapas Mentais',
         path: '/mapas-mentais',
         icon: 'Network',
+        roles: ['professor'],
         comingSoon: true,
+      },
+      {
+        label: 'Pacotes',
+        path: '/pacotes',
+        icon: 'Package',
+        roles: ['admin', 'colaborador'],
+        permission: 'manage_packages',
+      },
+      {
+        label: 'Editais',
+        path: '/editais',
+        icon: 'FileText',
+        roles: ['admin', 'colaborador'],
+        permission: 'manage_editais',
+      },
+      {
+        label: 'Noticias',
+        path: '/noticias',
+        icon: 'Newspaper',
+        roles: ['admin', 'colaborador'],
+        permission: 'manage_news',
+      },
+      {
+        label: 'Audio Cursos',
+        path: '/audio-cursos',
+        icon: 'Headphones',
+        roles: ['admin', 'colaborador'],
+        permission: 'manage_audiocourses',
       },
     ],
   },
+
+  // ─── Professor only ───────────────────────────────────────────────────────
   {
     label: 'Oportunidades',
     path: '/oportunidades',
@@ -77,44 +113,6 @@ export const navigation: NavItem[] = [
   },
 
   // ─── Admin / Colaborador ──────────────────────────────────────────────────
-  {
-    label: 'Conteudos',
-    path: '/cursos',
-    icon: 'BookOpen',
-    roles: ['admin', 'colaborador'],
-    children: [
-      {
-        label: 'Cursos',
-        path: '/cursos',
-        icon: 'BookOpen',
-        permission: 'manage_courses',
-      },
-      {
-        label: 'Pacotes',
-        path: '/pacotes',
-        icon: 'Package',
-        permission: 'manage_packages',
-      },
-      {
-        label: 'Editais',
-        path: '/editais',
-        icon: 'FileText',
-        permission: 'manage_editais',
-      },
-      {
-        label: 'Noticias',
-        path: '/noticias',
-        icon: 'Newspaper',
-        permission: 'manage_news',
-      },
-      {
-        label: 'Audio Cursos',
-        path: '/audio-cursos',
-        icon: 'Headphones',
-        permission: 'manage_audiocourses',
-      },
-    ],
-  },
   {
     label: 'Categorias',
     path: '/categorias',

@@ -120,10 +120,10 @@ interface SummaryCardProps {
 }
 
 const cardColors = {
-  green: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  blue: 'bg-blue-50 text-blue-600 border-blue-200',
-  purple: 'bg-purple-50 text-purple-600 border-purple-200',
-  orange: 'bg-orange-50 text-orange-600 border-orange-200',
+  green: 'bg-gradient-to-br from-emerald-50 to-emerald-100/50 text-emerald-600 border-emerald-200 shadow-sm',
+  blue: 'bg-gradient-to-br from-blue-50 to-blue-100/50 text-blue-600 border-blue-200 shadow-sm',
+  purple: 'bg-gradient-to-br from-purple-50 to-purple-100/50 text-purple-600 border-purple-200 shadow-sm',
+  orange: 'bg-gradient-to-br from-orange-50 to-orange-100/50 text-orange-600 border-orange-200 shadow-sm',
 }
 
 const iconColors = {

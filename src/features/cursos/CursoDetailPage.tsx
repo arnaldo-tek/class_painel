@@ -68,14 +68,12 @@ export function CursoDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900 truncate">{curso.nome}</h1>
           <p className="text-sm text-gray-500">Gerenciar modulos e aulas</p>
         </div>
-        {!isAdmin && (
-          <Link to="/cursos/$cursoId/editar" params={{ cursoId }}>
-            <Button variant="secondary">
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar Curso
-            </Button>
-          </Link>
-        )}
+        <Link to="/cursos/$cursoId/editar" params={{ cursoId }}>
+          <Button variant="secondary">
+            <Pencil className="mr-2 h-4 w-4" />
+            Editar Curso
+          </Button>
+        </Link>
       </div>
 
       {/* Curso info card */}
@@ -110,12 +108,10 @@ export function CursoDetailPage() {
           <h2 className="text-lg font-semibold text-gray-900">
             Modulos ({modulos?.length ?? 0})
           </h2>
-          {!isAdmin && (
-            <Button size="sm" onClick={() => { setShowModuloForm(true); setEditingModuloId(null) }}>
-              <Plus className="mr-1 h-4 w-4" />
-              Novo Modulo
-            </Button>
-          )}
+          <Button size="sm" onClick={() => { setShowModuloForm(true); setEditingModuloId(null) }}>
+            <Plus className="mr-1 h-4 w-4" />
+            Novo Modulo
+          </Button>
         </div>
 
         {showModuloForm && (
@@ -239,9 +235,7 @@ function ModuloCard({
         className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        {!isAdmin && (
-          <GripVertical className="h-4 w-4 text-gray-300 cursor-grab flex-shrink-0" onClick={(e) => e.stopPropagation()} />
-        )}
+        <GripVertical className="h-4 w-4 text-gray-300 cursor-grab flex-shrink-0" onClick={(e) => e.stopPropagation()} />
         <div className="text-gray-400 flex-shrink-0">
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </div>
@@ -250,20 +244,18 @@ function ModuloCard({
         </span>
         <span className="flex-1 font-medium text-gray-900 truncate">{modulo.nome}</span>
         <Badge variant="default">{aulas?.length ?? 0} aulas</Badge>
-        {!isAdmin && (
-          <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
-            <Tooltip text="Editar modulo">
-              <button onClick={onEdit} className="rounded p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600">
-                <Pencil className="h-4 w-4" />
-              </button>
-            </Tooltip>
-            <Tooltip text="Excluir modulo">
-              <button onClick={handleDelete} className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </Tooltip>
-          </div>
-        )}
+        <div className="flex gap-0.5" onClick={(e) => e.stopPropagation()}>
+          <Tooltip text="Editar modulo">
+            <button onClick={onEdit} className="rounded p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600">
+              <Pencil className="h-4 w-4" />
+            </button>
+          </Tooltip>
+          <Tooltip text="Excluir modulo">
+            <button onClick={handleDelete} className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Aulas list */}
@@ -272,15 +264,13 @@ function ModuloCard({
           {(aulas ?? []).length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-sm text-gray-400">Nenhuma aula neste modulo</p>
-              {!isAdmin && (
-                <button
-                  onClick={() => setAulaModal({ mode: 'create' })}
-                  className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  Criar primeira aula
-                </button>
-              )}
+              <button
+                onClick={() => setAulaModal({ mode: 'create' })}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+                Criar primeira aula
+              </button>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -296,7 +286,7 @@ function ModuloCard({
             </div>
           )}
 
-          {!isAdmin && (aulas ?? []).length > 0 && (
+          {(aulas ?? []).length > 0 && (
             <div className="px-4 py-3 border-t border-gray-100">
               <button
                 onClick={() => setAulaModal({ mode: 'create' })}
@@ -345,12 +335,10 @@ function AulaItem({
       className="flex items-center gap-3 px-4 py-3 hover:bg-white transition-colors group cursor-pointer"
       onClick={onOpen}
     >
-      {!isAdmin && (
-        <GripVertical
-          className="h-3.5 w-3.5 text-gray-300 cursor-grab flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={(e) => e.stopPropagation()}
-        />
-      )}
+      <GripVertical
+        className="h-3.5 w-3.5 text-gray-300 cursor-grab flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+      />
       <span className="text-xs text-gray-400 font-mono flex-shrink-0 w-5 text-right">
         {index + 1}
       </span>
@@ -388,19 +376,17 @@ function AulaItem({
       </div>
 
       {/* Delete (stop propagation so it doesn't open modal) */}
-      {!isAdmin && (
-        <Tooltip text="Excluir aula">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              if (confirm(`Excluir aula "${aula.titulo}"?`)) deleteMutation.mutate(aula.id)
-            }}
-            className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </Tooltip>
-      )}
+      <Tooltip text="Excluir aula">
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            if (confirm(`Excluir aula "${aula.titulo}"?`)) deleteMutation.mutate(aula.id)
+          }}
+          className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </Tooltip>
     </div>
   )
 }
@@ -574,7 +560,7 @@ function AulaGeralTab({
               accept="image/*"
               value={form.imagem_capa || null}
               onChange={(url) => handleChange('imagem_capa', url ?? '')}
-              onUpload={(file) => uploadFile('audiocursos', file, 'capas')}
+              onUpload={(file) => uploadFile('aulas', file, 'capas')}
               type="image"
             />
             <FileUpload
@@ -582,7 +568,7 @@ function AulaGeralTab({
               accept="application/pdf"
               value={form.pdf || null}
               onChange={(url) => handleChange('pdf', url ?? '')}
-              onUpload={(file) => uploadFile('audiocursos', file, 'pdfs')}
+              onUpload={(file) => uploadFile('aulas', file, 'pdfs')}
               type="pdf"
             />
           </div>
@@ -735,7 +721,7 @@ function AulaAudiosTab({ aulaId }: { aulaId: string }) {
   async function handleUploadAudio(file: File) {
     setUploading(true)
     try {
-      const url = await uploadFile('audiocursos', file, 'audios')
+      const url = await uploadFile('aulas', file, 'audios')
       setAudioUrl(url)
     } catch {
       // handled

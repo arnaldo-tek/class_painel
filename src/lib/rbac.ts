@@ -14,9 +14,6 @@ export function canAccessNavItem(
   roles: UserRole[],
   permissions: string[],
 ): boolean {
-  // Admin vê tudo
-  if (roles.includes('admin')) return true
-
   // Se o item tem roles definidos, verifica se o usuário tem algum deles
   if (item.roles && item.roles.length > 0) {
     const hasRole = item.roles.some((r) => roles.includes(r))
