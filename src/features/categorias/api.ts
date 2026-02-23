@@ -17,7 +17,7 @@ export async function fetchCategorias(tipo?: string) {
     .order('nome')
 
   if (tipo) {
-    query = query.eq('tipo', tipo)
+    query = query.eq('tipo', tipo as Categoria['tipo'])
   }
 
   const { data, error, count } = await query

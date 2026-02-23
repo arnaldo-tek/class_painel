@@ -147,7 +147,7 @@ function CategoriaForm({ editingId, onClose }: { editingId: string | null; onClo
           <Select
             options={TIPOS_CATEGORIA.map((t) => ({ value: t.value, label: t.label }))}
             value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
+            onChange={(e) => setTipo(e.target.value as typeof tipo)}
           />
         </div>
 
