@@ -98,8 +98,19 @@ export async function updateCurso(id: string, updates: Partial<Tables<'cursos'>>
   return data
 }
 
-export async function deleteCurso(id: string) {
-  const { error } = await supabase.from('cursos').delete().eq('id', id)
+export async function encerrarCurso(id: string) {
+  const { error } = await supabase
+    .from('cursos')
+    .update({ is_encerrado: true, is_publicado: false })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function togglePublicarCurso(id: string, publicar: boolean) {
+  const { error } = await supabase
+    .from('cursos')
+    .update({ is_publicado: publicar })
+    .eq('id', id)
   if (error) throw error
 }
 

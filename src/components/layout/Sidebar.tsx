@@ -4,7 +4,9 @@ import {
   LayoutDashboard, BookOpen, Tags, Package, GraduationCap, Users,
   UserCog, DollarSign, Ticket, Newspaper, FileText, Headphones,
   FolderOpen, Megaphone, PlayCircle, LifeBuoy, MessageSquare,
-  MessageCircle, SlidersHorizontal, HelpCircle, ChevronDown, ChevronRight, LogOut, Menu, X,
+  MessageCircle, SlidersHorizontal, HelpCircle, UserCircle,
+  ShoppingBag, Layers, Network, Briefcase, Image,
+  ChevronDown, ChevronRight, LogOut, Menu, X, Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { navigation } from '@/config/navigation'
@@ -19,7 +21,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, BookOpen, Tags, Package, GraduationCap, Users,
   UserCog, DollarSign, Ticket, Newspaper, FileText, Headphones,
   FolderOpen, Megaphone, PlayCircle, LifeBuoy, MessageSquare,
-  MessageCircle, SlidersHorizontal, HelpCircle,
+  MessageCircle, SlidersHorizontal, HelpCircle, UserCircle,
+  ShoppingBag, Layers, Network, Briefcase, Image,
 }
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
@@ -32,6 +35,25 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
   const [expanded, setExpanded] = useState(false)
   const matchRoute = useMatchRoute()
   const isActive = matchRoute({ to: item.path, fuzzy: true })
+
+  if (item.comingSoon) {
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',
+          'text-gray-400 cursor-not-allowed',
+        )}
+      >
+        <NavIcon name={item.icon} className="h-5 w-5 shrink-0" />
+        {!collapsed && (
+          <>
+            <span className="flex-1">{item.label}</span>
+            <Lock className="h-3.5 w-3.5" />
+          </>
+        )}
+      </div>
+    )
+  }
 
   if (item.children && item.children.length > 0) {
     return (
@@ -118,7 +140,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {filteredNav.map((item) => (
-          <SidebarItem key={item.path} item={item} collapsed={collapsed} />
+          <SidebarItem key={item.path + item.label} item={item} collapsed={collapsed} />
         ))}
       </nav>
 

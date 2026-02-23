@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  fetchCursos, fetchCurso, createCurso, updateCurso, deleteCurso,
+  fetchCursos, fetchCurso, createCurso, updateCurso, encerrarCurso, togglePublicarCurso,
   fetchProfessores, fetchCategoriasCurso,
   type CursosFilters,
 } from './api'
@@ -56,10 +56,21 @@ export function useUpdateCurso() {
   })
 }
 
-export function useDeleteCurso() {
+export function useEncerrarCurso() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: deleteCurso,
+    mutationFn: encerrarCurso,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cursos'] })
+    },
+  })
+}
+
+export function useTogglePublicarCurso() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, publicar }: { id: string; publicar: boolean }) =>
+      togglePublicarCurso(id, publicar),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cursos'] })
     },

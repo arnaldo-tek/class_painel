@@ -32,6 +32,8 @@ import { ComunidadesPage } from '@/features/comunidades/ComunidadesPage'
 import { SuporteAlunosPage, SuporteProfessoresPage } from '@/features/suporte/SuportePage'
 import { ChatPage } from '@/features/chat/ChatPage'
 import { FaqPage } from '@/features/faq/FaqPage'
+import { MeuPerfilPage } from '@/features/perfil/MeuPerfilPage'
+import { CardsPage } from '@/features/cards/CardsPage'
 
 // Root route
 const rootRoute = createRootRoute({
@@ -102,6 +104,8 @@ const comunidadesRoute = createRoute({ getParentRoute: () => protectedRoute, pat
 const suporteAlunosRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/suporte/alunos', component: SuporteAlunosPage })
 const suporteProfessoresRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/suporte/professores', component: SuporteProfessoresPage })
 const chatRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/chat', component: ChatPage })
+const meuPerfilRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/meu-perfil', component: MeuPerfilPage })
+const cardsRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/cards', component: CardsPage })
 
 // Index redirect
 const indexRoute = createRoute({
@@ -125,7 +129,7 @@ const routeTree = rootRoute.addChildren([
     noticiasRoute, editaisRoute, audioCursosRoute, documentosRoute, publicidadeRoute, tutoriaisRoute,
     faqRoute,
     comunidadesRoute,
-    suporteAlunosRoute, suporteProfessoresRoute, chatRoute,
+    suporteAlunosRoute, suporteProfessoresRoute, chatRoute, meuPerfilRoute, cardsRoute,
   ]),
 ])
 

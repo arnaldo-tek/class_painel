@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FileUpload } from '@/components/ui/file-upload'
+import { uploadFile } from '@/lib/storage'
 
 export function CursoDetailPage() {
   const { cursoId } = useParams({ strict: false }) as { cursoId: string }
@@ -221,6 +223,7 @@ function ModuloCard({
 // === Aula Item ===
 
 function AulaItem({ aula }: { aula: Aula }) {
+  const [editing, setEditing] = useState(false)
   const deleteMutation = useDeleteAula()
 
   const icons = []
@@ -229,21 +232,143 @@ function AulaItem({ aula }: { aula: Aula }) {
   if (aula.pdf) icons.push(<FileText key="p" className="h-3.5 w-3.5" />)
 
   return (
-    <div className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-50">
-      <GripVertical className="h-3.5 w-3.5 text-gray-300 cursor-grab" />
-      <span className="flex-1 text-sm text-gray-700">{aula.titulo}</span>
-      <div className="flex gap-1 text-gray-400">{icons}</div>
-      {aula.is_liberado && <Badge variant="success">Liberada</Badge>}
-      {aula.is_degustacao && <Badge variant="info">Degustação</Badge>}
-      <button
-        onClick={() => {
-          if (confirm(`Excluir aula "${aula.titulo}"?`)) deleteMutation.mutate(aula.id)
-        }}
-        className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
+    <div>
+      <div className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-gray-50">
+        <GripVertical className="h-3.5 w-3.5 text-gray-300 cursor-grab" />
+        <span className="flex-1 text-sm text-gray-700">{aula.titulo}</span>
+        <div className="flex gap-1 text-gray-400">{icons}</div>
+        {aula.is_liberado && <Badge variant="success">Liberada</Badge>}
+        {aula.is_degustacao && <Badge variant="info">Degustação</Badge>}
+        <button
+          onClick={() => setEditing(!editing)}
+          className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => {
+            if (confirm(`Excluir aula "${aula.titulo}"?`)) deleteMutation.mutate(aula.id)
+          }}
+          className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {editing && <AulaEditForm aula={aula} onClose={() => setEditing(false)} />}
     </div>
+  )
+}
+
+// === Aula Edit Form ===
+
+function AulaEditForm({ aula, onClose }: { aula: Aula; onClose: () => void }) {
+  const updateMutation = useUpdateAula()
+  const [form, setForm] = useState({
+    titulo: aula.titulo ?? '',
+    descricao: (aula as Record<string, unknown>).descricao as string ?? '',
+    texto_aula: (aula as Record<string, unknown>).texto_aula as string ?? '',
+    pdf: (aula as Record<string, unknown>).pdf as string ?? '',
+    imagem_capa: (aula as Record<string, unknown>).imagem_capa as string ?? '',
+    is_degustacao: !!(aula as Record<string, unknown>).is_degustacao,
+    is_liberado: !!(aula as Record<string, unknown>).is_liberado,
+  })
+  const [error, setError] = useState('')
+
+  function handleChange(field: string, value: unknown) {
+    setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!form.titulo.trim()) { setError('Título é obrigatório'); return }
+    try {
+      await updateMutation.mutateAsync({
+        id: aula.id,
+        titulo: form.titulo.trim(),
+        descricao: form.descricao || null,
+        texto_aula: form.texto_aula || null,
+        pdf: form.pdf || null,
+        imagem_capa: form.imagem_capa || null,
+        is_degustacao: form.is_degustacao,
+        is_liberado: form.is_liberado,
+      })
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+    }
+  }
+
+  async function handleUpload(file: File, folder: string) {
+    return uploadFile('audiocursos', file, folder)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-blue-200 bg-blue-50 p-4 ml-6 mt-2">
+      <div>
+        <label className="text-sm font-medium text-gray-700">Título</label>
+        <Input value={form.titulo} onChange={(e) => handleChange('titulo', e.target.value)} required className="mt-1" />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-gray-700">Descrição</label>
+        <textarea
+          value={form.descricao}
+          onChange={(e) => handleChange('descricao', e.target.value)}
+          rows={2}
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-gray-700">Texto da Aula</label>
+        <textarea
+          value={form.texto_aula}
+          onChange={(e) => handleChange('texto_aula', e.target.value)}
+          rows={5}
+          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FileUpload
+          label="PDF da Aula"
+          accept="application/pdf"
+          value={form.pdf || null}
+          onChange={(url) => handleChange('pdf', url ?? '')}
+          onUpload={(file) => handleUpload(file, 'pdfs')}
+          type="pdf"
+        />
+        <FileUpload
+          label="Imagem de Capa"
+          accept="image/*"
+          value={form.imagem_capa || null}
+          onChange={(url) => handleChange('imagem_capa', url ?? '')}
+          onUpload={(file) => handleUpload(file, 'capas')}
+          type="image"
+        />
+      </div>
+
+      <div className="flex gap-6">
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={form.is_degustacao} onChange={(e) => handleChange('is_degustacao', e.target.checked)} className="rounded border-gray-300" />
+          Degustação
+        </label>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={form.is_liberado} onChange={(e) => handleChange('is_liberado', e.target.checked)} className="rounded border-gray-300" />
+          Liberada
+        </label>
+      </div>
+
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={updateMutation.isPending}>
+          {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+        </Button>
+        <Button type="button" size="sm" variant="secondary" onClick={onClose}>
+          Cancelar
+        </Button>
+        {error && <p className="text-sm text-red-600 self-center">{error}</p>}
+      </div>
+    </form>
   )
 }
 

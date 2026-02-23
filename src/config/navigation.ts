@@ -10,20 +10,78 @@ export interface NavItem {
   /** Permissão admin granular necessária (só se aplica a colaboradores) */
   permission?: AdminPermission
   children?: NavItem[]
+  /** Marca o item como "em breve" — renderiza desabilitado */
+  comingSoon?: boolean
 }
 
 export const navigation: NavItem[] = [
+  // ─── Compartilhado ────────────────────────────────────────────────────────
   {
     label: 'Dashboard',
     path: '/dashboard',
     icon: 'LayoutDashboard',
     roles: ['admin', 'professor', 'colaborador'],
   },
+
+  // ─── Professor only ───────────────────────────────────────────────────────
+  {
+    label: 'Perfil',
+    path: '/meu-perfil',
+    icon: 'UserCircle',
+    roles: ['professor'],
+  },
+  {
+    label: 'Produtos',
+    path: '/cursos',
+    icon: 'ShoppingBag',
+    roles: ['professor'],
+    children: [
+      {
+        label: 'Cursos',
+        path: '/cursos',
+        icon: 'BookOpen',
+      },
+      {
+        label: 'Flashcards',
+        path: '/flashcards',
+        icon: 'Layers',
+        comingSoon: true,
+      },
+      {
+        label: 'Mapas Mentais',
+        path: '/mapas-mentais',
+        icon: 'Network',
+        comingSoon: true,
+      },
+    ],
+  },
+  {
+    label: 'Oportunidades',
+    path: '/oportunidades',
+    icon: 'Briefcase',
+    roles: ['professor'],
+    comingSoon: true,
+  },
+  {
+    label: 'Mentorias',
+    path: '/mentorias',
+    icon: 'Users',
+    roles: ['professor'],
+    comingSoon: true,
+  },
+  {
+    label: 'Cards',
+    path: '/cards',
+    icon: 'Image',
+    roles: ['professor'],
+  },
+
+  // ─── Admin / Colaborador ──────────────────────────────────────────────────
   {
     label: 'Conteudos',
     path: '/cursos',
     icon: 'BookOpen',
-    roles: ['admin', 'professor', 'colaborador'],
+    roles: ['admin', 'colaborador'],
     children: [
       {
         label: 'Cursos',
@@ -98,6 +156,8 @@ export const navigation: NavItem[] = [
     roles: ['admin'],
     permission: 'manage_colaboradores',
   },
+
+  // ─── Vendas (compartilhado) ───────────────────────────────────────────────
   {
     label: 'Vendas',
     path: '/vendas',
@@ -112,6 +172,8 @@ export const navigation: NavItem[] = [
     roles: ['admin', 'colaborador'],
     permission: 'view_sales',
   },
+
+  // ─── Admin only ───────────────────────────────────────────────────────────
   {
     label: 'Comunidades',
     path: '/comunidades',
@@ -146,11 +208,13 @@ export const navigation: NavItem[] = [
     roles: ['admin', 'colaborador'],
     permission: 'manage_student_support',
   },
+
+  // ─── Suporte ──────────────────────────────────────────────────────────────
   {
     label: 'Suporte',
     path: '/suporte',
     icon: 'LifeBuoy',
-    roles: ['admin', 'colaborador'],
+    roles: ['admin', 'professor', 'colaborador'],
     children: [
       {
         label: 'Chamados Alunos',

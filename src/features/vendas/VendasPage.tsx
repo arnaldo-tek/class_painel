@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { EmptyState } from '@/components/ui/empty-state'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { useProfessorProfile } from '@/hooks/useProfile'
 import { cn } from '@/lib/cn'
 
 const STATUS_OPTIONS = [
@@ -60,6 +62,10 @@ function formatCurrency(value: number) {
 }
 
 export function VendasPage() {
+  const { user, isAdmin, isProfessor } = useAuthContext()
+  const { data: professorProfile } = useProfessorProfile(isProfessor ? user?.id : undefined)
+  const professorOnly = isProfessor && !isAdmin
+  const visibleTabs = professorOnly ? TABS.filter((t) => t.key === 'geral') : TABS
   const [activeTab, setActiveTab] = useState<TabKey>('geral')
   const [dateFrom, setDateFrom] = useState(defaultDateFrom)
   const [dateTo, setDateTo] = useState(defaultDateTo)
@@ -70,7 +76,7 @@ export function VendasPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
-        {TABS.map((tab) => (
+        {visibleTabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -88,12 +94,16 @@ export function VendasPage() {
       </div>
 
       {activeTab === 'geral' && (
-        <TabGeral dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
+        <TabGeral
+          dateFrom={dateFrom} dateTo={dateTo}
+          onDateFromChange={setDateFrom} onDateToChange={setDateTo}
+          professorId={professorOnly ? professorProfile?.id : undefined}
+        />
       )}
-      {activeTab === 'professor' && (
+      {activeTab === 'professor' && !professorOnly && (
         <TabPorProfessor dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
       )}
-      {activeTab === 'categoria' && (
+      {activeTab === 'categoria' && !professorOnly && (
         <TabPorCategoria dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
       )}
     </div>
@@ -192,7 +202,11 @@ interface TabProps {
   onDateToChange: (v: string) => void
 }
 
-function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange }: TabProps) {
+interface TabGeralProps extends TabProps {
+  professorId?: string
+}
+
+function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professorId }: TabGeralProps) {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<VendasFilters>({ page: 1, dateFrom: defaultDateFrom(), dateTo: defaultDateTo() })
@@ -201,12 +215,13 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange }: TabPro
   const currentFilters = useMemo<VendasFilters>(() => ({
     ...filters,
     search: search || undefined,
+    professorId,
     dateFrom,
     dateTo,
-  }), [filters, search, dateFrom, dateTo])
+  }), [filters, search, professorId, dateFrom, dateTo])
 
   const { data, isLoading } = useVendas(currentFilters)
-  const { data: resumo } = useResumoVendas(dateFrom, dateTo)
+  const { data: resumo } = useResumoVendas(dateFrom, dateTo, professorId)
 
   function handleSearch() {
     setSearch(searchInput)
@@ -228,9 +243,9 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange }: TabPro
       {/* Summary Cards */}
       {resumo && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Receita Total" value={formatCurrency(resumo.totalReceita)} icon={TrendingUp} color="green" />
+          <SummaryCard label={professorId ? 'Minha Receita' : 'Receita Total'} value={formatCurrency(resumo.totalReceita)} icon={TrendingUp} color="green" />
           <SummaryCard label="Taxa Plataforma" value={formatCurrency(resumo.totalPlataforma)} icon={Percent} color="blue" />
-          <SummaryCard label="Repasse Professores" value={formatCurrency(resumo.totalProfessores)} icon={Wallet} color="purple" />
+          <SummaryCard label={professorId ? 'Meu Repasse' : 'Repasse Professores'} value={formatCurrency(resumo.totalProfessores)} icon={Wallet} color="purple" />
           <SummaryCard label="Total de Vendas" value={String(resumo.totalVendas)} icon={DollarSign} color="orange" />
         </div>
       )}

@@ -1,7 +1,12 @@
 import { useAuthContext } from '@/contexts/AuthContext'
+import { useProfessorStats } from '@/features/dashboard/hooks'
+import { useAdminStats } from '@/features/dashboard/hooks'
+import {
+  BookOpen, Users, TrendingUp, Star, GraduationCap,
+} from 'lucide-react'
 
 export function DashboardPage() {
-  const { user, roles, isAdmin, isProfessor } = useAuthContext()
+  const { user, isAdmin, isProfessor } = useAuthContext()
 
   return (
     <div className="space-y-6">
@@ -12,27 +17,133 @@ export function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <DashboardCard title="Papel" value={roles.join(', ') || '—'} />
-        {isAdmin && <DashboardCard title="Tipo" value="Administrador" />}
-        {isProfessor && <DashboardCard title="Tipo" value="Professor" />}
-        <DashboardCard title="Status" value="Ativo" />
-      </div>
+      {isProfessor && !isAdmin ? (
+        <ProfessorDashboard userId={user?.id} />
+      ) : (
+        <AdminDashboard />
+      )}
+    </div>
+  )
+}
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <p className="text-gray-500">
-          Os widgets do dashboard serão implementados nas próximas fases.
-        </p>
+function ProfessorDashboard({ userId }: { userId: string | undefined }) {
+  const { data: stats, isLoading } = useProfessorStats(userId)
+
+  if (isLoading) return <DashboardSkeleton />
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <KpiCard
+        title="Meus Cursos"
+        value={String(stats?.totalCursos ?? 0)}
+        icon={BookOpen}
+        color="blue"
+      />
+      <KpiCard
+        title="Alunos Matriculados"
+        value={String(stats?.totalAlunos ?? 0)}
+        icon={Users}
+        color="purple"
+      />
+      <KpiCard
+        title="Minha Receita"
+        value={formatCurrency(stats?.receitaTotal ?? 0)}
+        icon={TrendingUp}
+        color="green"
+      />
+      <KpiCard
+        title="Avaliação Média"
+        value={stats?.avaliacaoMedia != null ? stats.avaliacaoMedia.toFixed(1) : '—'}
+        icon={Star}
+        color="orange"
+      />
+    </div>
+  )
+}
+
+function AdminDashboard() {
+  const { data: stats, isLoading } = useAdminStats()
+
+  if (isLoading) return <DashboardSkeleton />
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <KpiCard
+        title="Total Cursos"
+        value={String(stats?.totalCursos ?? 0)}
+        icon={BookOpen}
+        color="blue"
+      />
+      <KpiCard
+        title="Total Professores"
+        value={String(stats?.totalProfessores ?? 0)}
+        icon={GraduationCap}
+        color="purple"
+      />
+      <KpiCard
+        title="Total Alunos"
+        value={String(stats?.totalAlunos ?? 0)}
+        icon={Users}
+        color="orange"
+      />
+      <KpiCard
+        title="Receita Total"
+        value={formatCurrency(stats?.receitaTotal ?? 0)}
+        icon={TrendingUp}
+        color="green"
+      />
+    </div>
+  )
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+type CardColor = 'blue' | 'green' | 'purple' | 'orange'
+
+const cardColors: Record<CardColor, string> = {
+  blue: 'bg-blue-50 text-blue-600 border-blue-200',
+  green: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+  purple: 'bg-purple-50 text-purple-600 border-purple-200',
+  orange: 'bg-orange-50 text-orange-600 border-orange-200',
+}
+
+const iconColors: Record<CardColor, string> = {
+  blue: 'bg-blue-100 text-blue-600',
+  green: 'bg-emerald-100 text-emerald-600',
+  purple: 'bg-purple-100 text-purple-600',
+  orange: 'bg-orange-100 text-orange-600',
+}
+
+function KpiCard({
+  title, value, icon: Icon, color,
+}: {
+  title: string; value: string; icon: React.ComponentType<{ className?: string }>; color: CardColor
+}) {
+  return (
+    <div className={`rounded-lg border p-4 ${cardColors[color]}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium opacity-80">{title}</p>
+          <p className="mt-1 text-xl font-bold">{value}</p>
+        </div>
+        <div className={`rounded-lg p-2.5 ${iconColors[color]}`}>
+          <Icon className="h-5 w-5" />
+        </div>
       </div>
     </div>
   )
 }
 
-function DashboardCard({ title, value }: { title: string; value: string }) {
+function DashboardSkeleton() {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="mt-1 text-lg font-semibold text-gray-900">{value}</p>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="h-24 animate-pulse rounded-lg border border-gray-200 bg-gray-100" />
+      ))}
     </div>
   )
+}
+
+function formatCurrency(value: number) {
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }

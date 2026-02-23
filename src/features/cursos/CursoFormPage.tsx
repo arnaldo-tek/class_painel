@@ -2,11 +2,23 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { ArrowLeft } from 'lucide-react'
 import { useCurso, useProfessores, useCategoriasCurso, useCreateCurso, useUpdateCurso } from './hooks'
+import {
+  useCategoria,
+  useEstados,
+  useMunicipios,
+  useEscolaridades,
+  useNiveis,
+  useOrgaos,
+  useCargos,
+  useDisciplinas,
+} from './filtros-hooks'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useProfessorProfile } from '@/hooks/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { FileUpload } from '@/components/ui/file-upload'
+import { uploadFile } from '@/lib/storage'
 
 export function CursoFormPage() {
   const { cursoId } = useParams({ strict: false }) as { cursoId?: string }
@@ -32,9 +44,68 @@ export function CursoFormPage() {
     taxa_superclasse: '25',
     is_publicado: false,
     is_degustacao: false,
+    imagem: '' as string | null,
+    // Filter name values (saved to cursos table)
+    estado: '',
+    cidade: '',
+    orgao: '',
+    escolaridade: '',
+    cargo: '',
+    disciplina_id: '',
+    // Filter IDs (used for cascading queries, not saved)
+    estado_id: '',
+    municipio_id: '',
+    orgao_id: '',
+    escolaridade_id: '',
+    cargo_id: '',
+    nivel_id: '',
   })
 
   const [error, setError] = useState('')
+
+  // Fetch categoria flags
+  const { data: categoriaFiltros } = useCategoria(form.categoria_id || undefined)
+
+  const filtroEstado = categoriaFiltros?.filtro_estado ?? false
+  const filtroCidade = categoriaFiltros?.filtro_cidade ?? false
+  const filtroEscolaridade = categoriaFiltros?.filtro_escolaridade ?? false
+  const filtroNivel = categoriaFiltros?.filtro_nivel ?? false
+  const filtroOrgao = categoriaFiltros?.filtro_orgao ?? false
+  const filtroCargo = categoriaFiltros?.filtro_cargo ?? false
+  const filtroDisciplina = categoriaFiltros?.filtro_disciplina ?? false
+
+  // Conditional data fetches
+  const { data: estados } = useEstados(filtroEstado)
+  const { data: municipios } = useMunicipios(form.estado_id || undefined, filtroCidade && !!form.estado_id)
+  const { data: escolaridades } = useEscolaridades(filtroEscolaridade)
+  const { data: niveis } = useNiveis(filtroNivel)
+  const { data: orgaos } = useOrgaos(
+    {
+      categoriaId: form.categoria_id || undefined,
+      estadoId: form.estado_id || undefined,
+      municipioId: form.municipio_id || undefined,
+      escolaridadeId: form.escolaridade_id || undefined,
+    },
+    filtroOrgao,
+  )
+  const { data: cargos } = useCargos(
+    {
+      orgaoId: form.orgao_id || undefined,
+      escolaridadeId: form.escolaridade_id || undefined,
+      categoriaId: form.categoria_id || undefined,
+    },
+    filtroCargo,
+  )
+  const { data: disciplinas } = useDisciplinas(
+    {
+      cargoId: form.cargo_id || undefined,
+      categoriaId: form.categoria_id || undefined,
+      estadoId: form.estado_id || undefined,
+      municipioId: form.municipio_id || undefined,
+      orgaoId: form.orgao_id || undefined,
+    },
+    filtroDisciplina,
+  )
 
   // Preencher form no modo edição
   useEffect(() => {
@@ -51,6 +122,20 @@ export function CursoFormPage() {
           : '25',
         is_publicado: existingCurso.is_publicado ?? false,
         is_degustacao: existingCurso.is_degustacao ?? false,
+        imagem: existingCurso.imagem ?? null,
+        estado: existingCurso.estado ?? '',
+        cidade: existingCurso.cidade ?? '',
+        orgao: existingCurso.orgao ?? '',
+        escolaridade: existingCurso.escolaridade ?? '',
+        cargo: existingCurso.cargo ?? '',
+        disciplina_id: existingCurso.disciplina_id ?? '',
+        // IDs will be empty on edit — user must re-select if changing filters
+        estado_id: '',
+        municipio_id: '',
+        orgao_id: '',
+        escolaridade_id: '',
+        cargo_id: '',
+        nivel_id: '',
       })
     }
   }, [existingCurso])
@@ -64,6 +149,85 @@ export function CursoFormPage() {
 
   function handleChange(field: string, value: string | boolean) {
     setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  function handleCategoriaChange(categoriaId: string) {
+    setForm((f) => ({
+      ...f,
+      categoria_id: categoriaId,
+      estado: '', cidade: '', orgao: '', escolaridade: '', cargo: '', disciplina_id: '',
+      estado_id: '', municipio_id: '', orgao_id: '', escolaridade_id: '', cargo_id: '', nivel_id: '',
+    }))
+  }
+
+  function handleEstadoChange(estadoId: string) {
+    const estadoNome = estados?.find((e) => e.id === estadoId)?.nome ?? ''
+    setForm((f) => ({
+      ...f,
+      estado_id: estadoId,
+      estado: estadoNome,
+      // Reset dependents
+      municipio_id: '', cidade: '',
+      orgao_id: '', orgao: '',
+      cargo_id: '', cargo: '',
+      disciplina_id: '',
+    }))
+  }
+
+  function handleMunicipioChange(municipioId: string) {
+    const municipioNome = municipios?.find((m) => m.id === municipioId)?.nome ?? ''
+    setForm((f) => ({
+      ...f,
+      municipio_id: municipioId,
+      cidade: municipioNome,
+      // Reset dependents
+      orgao_id: '', orgao: '',
+      cargo_id: '', cargo: '',
+      disciplina_id: '',
+    }))
+  }
+
+  function handleEscolaridadeChange(escolaridadeId: string) {
+    const escolaridadeNome = escolaridades?.find((e) => e.id === escolaridadeId)?.nome ?? ''
+    setForm((f) => ({
+      ...f,
+      escolaridade_id: escolaridadeId,
+      escolaridade: escolaridadeNome,
+      // Reset dependents that use escolaridade
+      orgao_id: '', orgao: '',
+      cargo_id: '', cargo: '',
+      disciplina_id: '',
+    }))
+  }
+
+  function handleNivelChange(nivelId: string) {
+    setForm((f) => ({ ...f, nivel_id: nivelId }))
+  }
+
+  function handleOrgaoChange(orgaoId: string) {
+    const orgaoNome = orgaos?.find((o) => o.id === orgaoId)?.nome ?? ''
+    setForm((f) => ({
+      ...f,
+      orgao_id: orgaoId,
+      orgao: orgaoNome,
+      // Reset dependents
+      cargo_id: '', cargo: '',
+      disciplina_id: '',
+    }))
+  }
+
+  function handleCargoChange(cargoId: string) {
+    const cargoNome = cargos?.find((c) => c.id === cargoId)?.nome ?? ''
+    setForm((f) => ({
+      ...f,
+      cargo_id: cargoId,
+      cargo: cargoNome,
+      disciplina_id: '',
+    }))
+  }
+
+  function handleDisciplinaChange(disciplinaId: string) {
+    setForm((f) => ({ ...f, disciplina_id: disciplinaId }))
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -89,6 +253,13 @@ export function CursoFormPage() {
       taxa_superclasse: parseFloat(form.taxa_superclasse) || 25,
       is_publicado: form.is_publicado,
       is_degustacao: form.is_degustacao,
+      imagem: form.imagem || null,
+      estado: form.estado || null,
+      cidade: form.cidade || null,
+      orgao: form.orgao || null,
+      escolaridade: form.escolaridade || null,
+      cargo: form.cargo || null,
+      disciplina_id: form.disciplina_id || null,
     }
 
     try {
@@ -112,6 +283,7 @@ export function CursoFormPage() {
   }
 
   const isSaving = createMutation.isPending || updateMutation.isPending
+  const hasAnyFilter = filtroEstado || filtroCidade || filtroEscolaridade || filtroNivel || filtroOrgao || filtroCargo || filtroDisciplina
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -129,6 +301,15 @@ export function CursoFormPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 bg-white p-6">
+        <FileUpload
+          label="Imagem do curso"
+          accept="image/*"
+          type="image"
+          value={form.imagem}
+          onChange={(url) => setForm((f) => ({ ...f, imagem: url }))}
+          onUpload={(file) => uploadFile('cursos', file, 'imagens')}
+        />
+
         <Input
           id="nome"
           label="Nome do curso *"
@@ -208,8 +389,92 @@ export function CursoFormPage() {
             label: c.nome,
           }))}
           value={form.categoria_id}
-          onChange={(e) => handleChange('categoria_id', e.target.value)}
+          onChange={(e) => handleCategoriaChange(e.target.value)}
         />
+
+        {/* Filtros condicionais do concurso */}
+        {hasAnyFilter && (
+          <div className="space-y-4 rounded-lg border border-gray-100 bg-gray-50 p-4">
+            <h3 className="text-sm font-semibold text-gray-700">Filtros do concurso</h3>
+
+            {filtroEstado && (
+              <Select
+                id="estado_id"
+                label="Estado"
+                placeholder="Selecione o estado"
+                options={(estados ?? []).map((e) => ({ value: e.id, label: e.nome }))}
+                value={form.estado_id}
+                onChange={(e) => handleEstadoChange(e.target.value)}
+              />
+            )}
+
+            {filtroCidade && form.estado_id && (
+              <Select
+                id="municipio_id"
+                label="Cidade"
+                placeholder="Selecione a cidade"
+                options={(municipios ?? []).map((m) => ({ value: m.id, label: m.nome }))}
+                value={form.municipio_id}
+                onChange={(e) => handleMunicipioChange(e.target.value)}
+              />
+            )}
+
+            {filtroEscolaridade && (
+              <Select
+                id="escolaridade_id"
+                label="Escolaridade"
+                placeholder="Selecione a escolaridade"
+                options={(escolaridades ?? []).map((e) => ({ value: e.id, label: e.nome }))}
+                value={form.escolaridade_id}
+                onChange={(e) => handleEscolaridadeChange(e.target.value)}
+              />
+            )}
+
+            {filtroNivel && (
+              <Select
+                id="nivel_id"
+                label="Nível"
+                placeholder="Selecione o nível"
+                options={(niveis ?? []).map((n) => ({ value: n.id, label: n.nome }))}
+                value={form.nivel_id}
+                onChange={(e) => handleNivelChange(e.target.value)}
+              />
+            )}
+
+            {filtroOrgao && (
+              <Select
+                id="orgao_id"
+                label="Órgão"
+                placeholder="Selecione o órgão"
+                options={(orgaos ?? []).map((o) => ({ value: o.id, label: o.nome }))}
+                value={form.orgao_id}
+                onChange={(e) => handleOrgaoChange(e.target.value)}
+              />
+            )}
+
+            {filtroCargo && (
+              <Select
+                id="cargo_id"
+                label="Cargo"
+                placeholder="Selecione o cargo"
+                options={(cargos ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+                value={form.cargo_id}
+                onChange={(e) => handleCargoChange(e.target.value)}
+              />
+            )}
+
+            {filtroDisciplina && (
+              <Select
+                id="disciplina_id"
+                label="Disciplina"
+                placeholder="Selecione a disciplina"
+                options={(disciplinas ?? []).map((d) => ({ value: d.id, label: d.nome }))}
+                value={form.disciplina_id}
+                onChange={(e) => handleDisciplinaChange(e.target.value)}
+              />
+            )}
+          </div>
+        )}
 
         <Input
           id="video_aula_apresentacao"

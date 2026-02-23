@@ -14,10 +14,10 @@ export function useVendas(filters: VendasFilters) {
   })
 }
 
-export function useResumoVendas(dateFrom?: string, dateTo?: string) {
+export function useResumoVendas(dateFrom?: string, dateTo?: string, professorId?: string) {
   return useQuery({
-    queryKey: ['resumo-vendas', dateFrom, dateTo],
-    queryFn: () => fetchResumoVendas(dateFrom, dateTo),
+    queryKey: ['resumo-vendas', dateFrom, dateTo, professorId],
+    queryFn: () => fetchResumoVendas(dateFrom, dateTo, professorId),
   })
 }
 

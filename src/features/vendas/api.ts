@@ -40,12 +40,13 @@ export async function fetchVendas(filters: VendasFilters) {
   }
 }
 
-export async function fetchResumoVendas(dateFrom?: string, dateTo?: string) {
+export async function fetchResumoVendas(dateFrom?: string, dateTo?: string, professorId?: string) {
   let query = supabase
     .from('movimentacoes')
     .select('valor, taxa_plataforma, status')
     .eq('status', 'paid')
 
+  if (professorId) query = query.eq('professor_id', professorId)
   if (dateFrom) query = query.gte('created_at', dateFrom)
   if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
 

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Search, Plus, BookOpen, Eye, Pencil, Trash2 } from 'lucide-react'
-import { useCursos, useProfessores, useCategoriasCurso, useDeleteCurso } from './hooks'
+import { Search, Plus, BookOpen, Eye, Pencil, Globe, XCircle } from 'lucide-react'
+import { useCursos, useProfessores, useCategoriasCurso, useEncerrarCurso, useTogglePublicarCurso } from './hooks'
 import type { CursosFilters, Curso } from './api'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { useProfessorProfile } from '@/hooks/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -22,28 +23,34 @@ function getCursoStatus(curso: Curso) {
 
 export function CursosPage() {
   const { isAdmin, isProfessor, user } = useAuthContext()
+  const { data: professorProfile } = useProfessorProfile(isProfessor ? user?.id : undefined)
   const [filters, setFilters] = useState<CursosFilters>({ page: 1 })
   const [searchInput, setSearchInput] = useState('')
 
-  // Professor só vê seus próprios cursos
+  // Professor só vê seus próprios cursos (usa professor_profiles.id, não user.id)
   const effectiveFilters: CursosFilters = {
     ...filters,
-    ...(isProfessor && !isAdmin ? { professorId: user?.id } : {}),
+    ...(isProfessor && !isAdmin ? { professorId: professorProfile?.id } : {}),
   }
 
   const { data, isLoading, error } = useCursos(effectiveFilters)
   const { data: professores } = useProfessores()
   const { data: categorias } = useCategoriasCurso()
-  const deleteMutation = useDeleteCurso()
+  const encerrarMutation = useEncerrarCurso()
+  const togglePublicarMutation = useTogglePublicarCurso()
 
   function handleSearch() {
     setFilters((f) => ({ ...f, search: searchInput, page: 1 }))
   }
 
-  function handleDelete(id: string, nome: string) {
-    if (confirm(`Tem certeza que deseja excluir o curso "${nome}"?`)) {
-      deleteMutation.mutate(id)
+  function handleEncerrar(id: string, nome: string) {
+    if (confirm(`Tem certeza que deseja encerrar o curso "${nome}"? Ele será despublicado.`)) {
+      encerrarMutation.mutate(id)
     }
+  }
+
+  function handleTogglePublicar(id: string, publicar: boolean) {
+    togglePublicarMutation.mutate({ id, publicar })
   }
 
   return (
@@ -208,25 +215,35 @@ export function CursosPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Link to="/cursos/$cursoId" params={{ cursoId: curso.id }}>
-                          <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-                            <Eye className="h-4 w-4" />
+                        {!isAdmin && !curso.is_encerrado && (
+                          <button
+                            onClick={() => handleTogglePublicar(curso.id, !curso.is_publicado)}
+                            title={curso.is_publicado ? 'Despublicar' : 'Publicar'}
+                            className={`rounded p-1.5 ${
+                              curso.is_publicado
+                                ? 'text-green-600 hover:bg-green-50 hover:text-green-700'
+                                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                            }`}
+                          >
+                            <Globe className="h-4 w-4" />
+                          </button>
+                        )}
+                        <Link to={!isAdmin ? "/cursos/$cursoId/editar" : "/cursos/$cursoId"} params={{ cursoId: curso.id }}>
+                          <button
+                            title={!isAdmin ? 'Ver / Editar' : 'Ver detalhes'}
+                            className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                          >
+                            {!isAdmin ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </Link>
-                        {!isAdmin && (
-                          <>
-                            <Link to="/cursos/$cursoId/editar" params={{ cursoId: curso.id }}>
-                              <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
-                                <Pencil className="h-4 w-4" />
-                              </button>
-                            </Link>
-                            <button
-                              onClick={() => handleDelete(curso.id, curso.nome)}
-                              className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
+                        {!isAdmin && !curso.is_encerrado && (
+                          <button
+                            onClick={() => handleEncerrar(curso.id, curso.nome)}
+                            title="Encerrar curso"
+                            className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </TableCell>
