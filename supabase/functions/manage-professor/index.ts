@@ -1,5 +1,6 @@
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin, createSupabaseFromRequest } from '../_shared/supabase.ts'
+import { pagarmeRequest } from '../_shared/pagarme.ts'
 
 Deno.serve(async (req) => {
   const cors = handleCors(req)
@@ -26,7 +27,12 @@ Deno.serve(async (req) => {
     const admin = createSupabaseAdmin()
 
     if (action === 'create') {
-      const { email, password, nome_professor, telefone, cpf_cnpj, disciplina } = body
+      const {
+        email, password, nome_professor, telefone, cpf_cnpj, disciplina,
+        rua, numero_casa_ap, bairro, cidade, estado, cep,
+        banco, agencia, digito_agencia, conta, digito_conta,
+        data_nascimento, ddd, account_type,
+      } = body
 
       if (!email || !password) return errorResponse('Email e senha são obrigatórios')
       if (!nome_professor) return errorResponse('Nome do professor é obrigatório')
@@ -51,20 +57,88 @@ Deno.serve(async (req) => {
         .insert({ user_id: userId, role: 'professor' })
       if (roleErr) throw roleErr
 
-      const { error: profErr } = await admin
+      const profileData: Record<string, unknown> = {
+        user_id: userId,
+        nome_professor,
+        email,
+        telefone: telefone || null,
+        cpf_cnpj: cpf_cnpj || null,
+        disciplina: disciplina || null,
+        rua: rua || null,
+        numero_casa_ap: numero_casa_ap || null,
+        bairro: bairro || null,
+        cidade: cidade || null,
+        estado: estado || null,
+        banco: banco || null,
+        agencia: agencia || null,
+        digito_agencia: digito_agencia || null,
+        conta: conta || null,
+        digito_conta: digito_conta || null,
+        data_nascimento: data_nascimento || null,
+        approval_status: 'em_analise',
+      }
+
+      const { data: profData, error: profErr } = await admin
         .from('professor_profiles')
-        .insert({
-          user_id: userId,
-          nome_professor,
-          email,
-          telefone: telefone || null,
-          cpf_cnpj: cpf_cnpj || null,
-          disciplina: disciplina || null,
-          approval_status: 'em_analise',
-        })
+        .insert(profileData)
+        .select('id')
+        .single()
       if (profErr) throw profErr
 
-      return jsonResponse({ user_id: userId })
+      // Register as Pagar.me recipient if bank data is provided
+      let pagarme_receiver_id: string | null = null
+      if (banco && agencia && conta && digito_conta && cpf_cnpj && rua && cidade && estado) {
+        try {
+          const cleanDoc = cpf_cnpj.replace(/\D/g, '')
+          const isCompany = cleanDoc.length > 11
+          const phoneDdd = ddd || (telefone ? telefone.replace(/\D/g, '').slice(0, 2) : '')
+          const phoneNumber = telefone ? telefone.replace(/\D/g, '').slice(2) : ''
+
+          const recipient = await pagarmeRequest<{ id: string }>('/recipients', 'POST', {
+            name: nome_professor,
+            email,
+            document: cleanDoc,
+            type: isCompany ? 'company' : 'individual',
+            default_bank_account: {
+              bank: banco,
+              branch_number: agencia,
+              branch_check_digit: digito_agencia || '',
+              account_number: conta,
+              account_check_digit: digito_conta,
+              type: account_type || 'checking',
+              holder_name: nome_professor,
+              holder_document: cleanDoc,
+              holder_type: isCompany ? 'company' : 'individual',
+            },
+            ...(phoneDdd && phoneNumber ? {
+              phone: { country_code: '55', area_code: phoneDdd, number: phoneNumber },
+            } : {}),
+            address: {
+              street: rua,
+              number: numero_casa_ap || 'S/N',
+              complement: '',
+              neighborhood: bairro || '',
+              city: cidade,
+              state: estado,
+              zip_code: (cep || '').replace(/\D/g, ''),
+              country: 'BR',
+            },
+            ...(data_nascimento ? { birthdate: data_nascimento } : {}),
+          })
+
+          pagarme_receiver_id = recipient.id
+
+          await admin
+            .from('professor_profiles')
+            .update({ pagarme_receiver_id: recipient.id })
+            .eq('id', profData.id)
+        } catch (pagarmeErr) {
+          // Log but don't fail the professor creation
+          console.error('Pagar.me recipient registration failed:', pagarmeErr)
+        }
+      }
+
+      return jsonResponse({ user_id: userId, pagarme_receiver_id })
     }
 
     if (action === 'block') {

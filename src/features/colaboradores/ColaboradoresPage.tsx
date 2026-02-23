@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { UserCog, Plus, Trash2, Pencil, X, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { UserCog, Plus, Trash2, Pencil, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { useColaboradores, useCreateColaborador, useUpdateColaborador, useDeleteColaborador } from './hooks'
 import { useEstados, useMunicipiosByEstado } from '@/features/filtros/hooks'
 import { ADMIN_PERMISSIONS, type AdminPermission } from '@/types/enums'
@@ -7,6 +7,7 @@ import type { Colaborador, ColaboradorFormData } from './api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Modal } from '@/components/ui/modal'
 import { EmptyState } from '@/components/ui/empty-state'
 
 const PERMISSION_LABELS: Record<string, string> = {
@@ -111,12 +112,11 @@ export function ColaboradoresPage() {
         </Button>
       </div>
 
-      {showForm && (
-        <ColaboradorForm
-          colaborador={editingColab}
-          onClose={handleCloseForm}
-        />
-      )}
+      <ColaboradorFormModal
+        open={showForm}
+        colaborador={editingColab}
+        onClose={handleCloseForm}
+      />
 
       {isLoading ? (
         <div className="flex justify-center py-12">
@@ -143,10 +143,12 @@ export function ColaboradoresPage() {
   )
 }
 
-function ColaboradorForm({
+function ColaboradorFormModal({
+  open,
   colaborador,
   onClose,
 }: {
+  open: boolean
   colaborador: Colaborador | null
   onClose: () => void
 }) {
@@ -158,9 +160,16 @@ function ColaboradorForm({
   const { data: estadosData } = useEstados()
   const estados = estadosData?.items ?? []
 
-  const [form, setForm] = useState<ColaboradorFormData>(() => {
+  const [form, setForm] = useState<ColaboradorFormData>({ ...emptyForm })
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const [cepLoading, setCepLoading] = useState(false)
+
+  // Reset form when colaborador changes or modal opens
+  useEffect(() => {
+    if (!open) return
     if (colaborador) {
-      return {
+      setForm({
         email: colaborador.email,
         display_name: colaborador.display_name ?? '',
         phone_number: colaborador.phone_number ?? '',
@@ -177,18 +186,17 @@ function ColaboradorForm({
         digito_opcional: colaborador.digito_opcional ?? '',
         chave_pix: colaborador.chave_pix ?? '',
         permissions: colaborador.permissions as AdminPermission[],
-      }
+      })
+    } else {
+      setForm({ ...emptyForm })
     }
-    return { ...emptyForm }
-  })
+    setConfirmPassword('')
+    setError('')
+  }, [open, colaborador])
 
   // Encontra o ID do estado selecionado para buscar municípios
   const selectedEstadoId = estados.find((e) => e.nome === form.estado)?.id
   const { data: municipios } = useMunicipiosByEstado(selectedEstadoId)
-
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState('')
-  const [cepLoading, setCepLoading] = useState(false)
 
   function setField<K extends keyof ColaboradorFormData>(key: K, value: ColaboradorFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -213,7 +221,6 @@ function ColaboradorForm({
       const data: ViaCepResponse = await res.json()
       if (data.erro) return
 
-      // ViaCEP retorna UF (ex: "SP") — match direto pelo campo uf do banco
       const estadoMatch = estados.find((e) => e.uf === data.uf)
       setForm((prev) => ({
         ...prev,
@@ -232,7 +239,6 @@ function ColaboradorForm({
   function handleCepChange(value: string) {
     const masked = maskCEP(value)
     setField('cep', masked)
-    // Auto-busca quando o CEP está completo (8 dígitos)
     const digits = value.replace(/\D/g, '')
     if (digits.length === 8) {
       fetchViaCep(digits)
@@ -241,7 +247,6 @@ function ColaboradorForm({
 
   function handleEstadoChange(estadoNome: string) {
     setField('estado', estadoNome)
-    // Limpa a cidade ao trocar o estado
     setField('cidade', '')
   }
 
@@ -285,14 +290,12 @@ function ColaboradorForm({
   const isPending = createMutation.isPending || updateMutation.isPending
 
   return (
-    <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium">{isEdit ? 'Editar Colaborador' : 'Novo Colaborador'}</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? 'Editar Colaborador' : 'Novo Colaborador'}
+      maxWidth="max-w-3xl"
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Dados Pessoais */}
         <div>
@@ -475,7 +478,7 @@ function ColaboradorForm({
           </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   )
 }
 

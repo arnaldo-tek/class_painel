@@ -1,5 +1,7 @@
 const PAGARME_BASE_URL = Deno.env.get('PAGARME_BASE_URL') ??
-  'https://pagarme-transfer-160068673469.southamerica-east1.run.app/core/v5'
+  'https://api.pagar.me/core/v5'
+
+const TRANSFER_PROXY_URL = Deno.env.get('TRANSFER_PROXY_URL') ?? ''
 
 const PAGARME_API_KEY = Deno.env.get('PAGARME_API_KEY') ?? ''
 
@@ -46,12 +48,21 @@ export function buildSplitRules(receiverIds: string[]): SplitRule[] {
   return rules
 }
 
+export interface PagarmeRequestOptions {
+  useTransferProxy?: boolean
+}
+
 /** Generic Pagar.me API call */
 export async function pagarmeRequest<T = unknown>(
   path: string,
   method: 'GET' | 'POST' | 'DELETE' = 'GET',
   body?: unknown,
+  options?: PagarmeRequestOptions,
 ): Promise<T> {
+  const baseUrl = options?.useTransferProxy && TRANSFER_PROXY_URL
+    ? TRANSFER_PROXY_URL
+    : PAGARME_BASE_URL
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -61,7 +72,7 @@ export async function pagarmeRequest<T = unknown>(
     headers['Authorization'] = `Basic ${btoa(PAGARME_API_KEY + ':')}`
   }
 
-  const res = await fetch(`${PAGARME_BASE_URL}${path}`, {
+  const res = await fetch(`${baseUrl}${path}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,

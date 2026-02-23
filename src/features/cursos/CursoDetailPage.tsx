@@ -560,7 +560,14 @@ function AulaGeralTab({
               accept="image/*"
               value={form.imagem_capa || null}
               onChange={(url) => handleChange('imagem_capa', url ?? '')}
-              onUpload={(file) => uploadFile('aulas', file, 'capas')}
+              onUpload={async (file) => {
+                try {
+                  return await uploadFile('aulas', file, 'capas')
+                } catch (err) {
+                  setError(`Erro ao subir imagem: ${err instanceof Error ? err.message : String(err)}`)
+                  throw err
+                }
+              }}
               type="image"
             />
             <FileUpload
@@ -568,7 +575,14 @@ function AulaGeralTab({
               accept="application/pdf"
               value={form.pdf || null}
               onChange={(url) => handleChange('pdf', url ?? '')}
-              onUpload={(file) => uploadFile('aulas', file, 'pdfs')}
+              onUpload={async (file) => {
+                try {
+                  return await uploadFile('aulas', file, 'pdfs')
+                } catch (err) {
+                  setError(`Erro ao subir PDF: ${err instanceof Error ? err.message : String(err)}`)
+                  throw err
+                }
+              }}
               type="pdf"
             />
           </div>
@@ -596,7 +610,11 @@ function AulaGeralTab({
         </>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="flex gap-2 pt-2">
         <Button type="submit" disabled={isPending}>
@@ -864,20 +882,23 @@ function AulaQuestoesTab({ aulaId }: { aulaId: string }) {
                 </div>
               </div>
               <div className="ml-8 space-y-1">
-                {q.alternativas.map((alt, altIdx) => (
-                  <div
-                    key={altIdx}
-                    className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${
-                      alt === q.resposta
-                        ? 'bg-green-50 text-green-700 font-medium'
-                        : 'text-gray-600'
-                    }`}
-                  >
-                    <span className="text-xs font-bold">{String.fromCharCode(65 + altIdx)})</span>
-                    {alt}
-                    {alt === q.resposta && <Badge variant="success">Correta</Badge>}
-                  </div>
-                ))}
+                {q.alternativas.map((alt, altIdx) => {
+                  const isCorreta = q.resposta && q.alternativas.indexOf(q.resposta) === altIdx
+                  return (
+                    <div
+                      key={altIdx}
+                      className={`flex items-center gap-2 rounded px-2 py-1 text-sm ${
+                        isCorreta
+                          ? 'bg-green-50 text-green-700 font-medium'
+                          : 'text-gray-600'
+                      }`}
+                    >
+                      <span className="text-xs font-bold">{String.fromCharCode(65 + altIdx)})</span>
+                      {alt}
+                      {isCorreta && <Badge variant="success">Correta</Badge>}
+                    </div>
+                  )
+                })}
               </div>
               {q.video && (
                 <p className="ml-8 text-xs text-gray-500">Video: {q.video}</p>
@@ -924,7 +945,12 @@ function QuestaoForm({
   const [alternativas, setAlternativas] = useState<string[]>(
     existing?.alternativas ?? ['', '', '', ''],
   )
-  const [resposta, setResposta] = useState(existing?.resposta ?? '')
+  // Track correct answer by INDEX, not by text value
+  const [respostaIdx, setRespostaIdx] = useState<number | null>(() => {
+    if (!existing?.resposta || !existing?.alternativas) return null
+    const idx = existing.alternativas.indexOf(existing.resposta)
+    return idx >= 0 ? idx : null
+  })
   const [video, setVideo] = useState(existing?.video ?? '')
   const [error, setError] = useState('')
 
@@ -938,9 +964,13 @@ function QuestaoForm({
 
   function removeAlternativa(idx: number) {
     if (alternativas.length <= 2) return
-    const removed = alternativas[idx]
     setAlternativas((prev) => prev.filter((_, i) => i !== idx))
-    if (resposta === removed) setResposta('')
+    // Adjust respostaIdx when removing alternatives
+    if (respostaIdx === idx) {
+      setRespostaIdx(null)
+    } else if (respostaIdx !== null && respostaIdx > idx) {
+      setRespostaIdx(respostaIdx - 1)
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -948,13 +978,15 @@ function QuestaoForm({
     const filledAlts = alternativas.filter((a) => a.trim())
     if (!pergunta.trim()) { setError('Pergunta e obrigatoria'); return }
     if (filledAlts.length < 2) { setError('Minimo 2 alternativas'); return }
-    if (!resposta) { setError('Selecione a resposta correta'); return }
+    if (respostaIdx === null || !alternativas[respostaIdx]?.trim()) {
+      setError('Selecione a resposta correta'); return
+    }
 
     try {
       const data = {
         pergunta: pergunta.trim(),
         alternativas: filledAlts,
-        resposta,
+        resposta: alternativas[respostaIdx].trim(),
         video: video.trim() || null,
       }
 
@@ -992,8 +1024,8 @@ function QuestaoForm({
             <input
               type="radio"
               name="resposta"
-              checked={resposta === alt && alt.trim() !== ''}
-              onChange={() => setResposta(alt)}
+              checked={respostaIdx === idx}
+              onChange={() => setRespostaIdx(idx)}
               disabled={!alt.trim()}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500"
               title="Marcar como correta"

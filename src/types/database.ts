@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_permissions: {
@@ -2392,6 +2417,7 @@ export type Database = {
           imagem: string | null
           is_active: boolean | null
           link: string | null
+          plataforma: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2399,6 +2425,7 @@ export type Database = {
           imagem?: string | null
           is_active?: boolean | null
           link?: string | null
+          plataforma?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2406,6 +2433,7 @@ export type Database = {
           imagem?: string | null
           is_active?: boolean | null
           link?: string | null
+          plataforma?: string | null
         }
         Relationships: []
       }
@@ -2759,6 +2787,36 @@ export type Database = {
           },
         ]
       }
+      transferencias: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          pagarme_transfer_id: string
+          recipient_id: string
+          requested_by: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          pagarme_transfer_id: string
+          recipient_id: string
+          requested_by?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          pagarme_transfer_id?: string
+          recipient_id?: string
+          requested_by?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       tutoriais: {
         Row: {
           created_at: string | null
@@ -3022,6 +3080,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       approval_status: ["em_analise", "aprovado", "reprovado"],

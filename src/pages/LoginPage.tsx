@@ -168,6 +168,18 @@ export function LoginPage() {
               )}
             </Button>
           </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              É professor?{' '}
+              <Link
+                to="/cadastro-professor"
+                className="font-medium text-blue-600 hover:text-blue-700"
+              >
+                Cadastre-se aqui
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import {
 import { AuthGuard } from '@/components/layout/AuthGuard'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LoginPage } from '@/pages/LoginPage'
+import { RegisterProfessorPage } from '@/pages/RegisterProfessorPage'
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { CursosPage } from '@/features/cursos/CursosPage'
@@ -45,6 +46,12 @@ const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
   component: LoginPage,
+})
+
+const registerProfessorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/cadastro-professor',
+  component: RegisterProfessorPage,
 })
 
 const forgotPasswordRoute = createRoute({
@@ -120,6 +127,7 @@ const indexRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
+  registerProfessorRoute,
   forgotPasswordRoute,
   protectedRoute.addChildren([
     dashboardRoute,

@@ -74,6 +74,23 @@ export interface CreateProfessorData {
   telefone: string
   cpf_cnpj: string
   disciplina: string
+  // Endereço
+  rua?: string
+  numero_casa_ap?: string
+  bairro?: string
+  cidade?: string
+  estado?: string
+  cep?: string
+  // Dados bancários
+  banco?: string
+  agencia?: string
+  digito_agencia?: string
+  conta?: string
+  digito_conta?: string
+  // Pagar.me
+  data_nascimento?: string
+  ddd?: string
+  account_type?: 'checking' | 'savings'
 }
 
 export async function createProfessor(data: CreateProfessorData) {

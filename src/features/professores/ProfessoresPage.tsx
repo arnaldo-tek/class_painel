@@ -1,6 +1,6 @@
-import { useState, useMemo, type FormEvent } from 'react'
+import { useState, useMemo, useCallback, type FormEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { GraduationCap, CheckCircle, XCircle, Star, Search, Plus } from 'lucide-react'
+import { GraduationCap, CheckCircle, XCircle, Star, Search, Plus, Loader2 } from 'lucide-react'
 import { useProfessores, useUpdateProfessorStatus, useCreateProfessor } from './hooks'
 import type { ProfessorProfile, CreateProfessorData } from './api'
 import type { ApprovalStatus } from '@/types/enums'
@@ -183,6 +183,20 @@ const emptyForm: CreateProfessorData = {
   telefone: '',
   cpf_cnpj: '',
   disciplina: '',
+  rua: '',
+  numero_casa_ap: '',
+  bairro: '',
+  cidade: '',
+  estado: '',
+  cep: '',
+  banco: '',
+  agencia: '',
+  digito_agencia: '',
+  conta: '',
+  digito_conta: '',
+  data_nascimento: '',
+  ddd: '',
+  account_type: 'checking',
 }
 
 function CreateProfessorModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -190,9 +204,36 @@ function CreateProfessorModal({ open, onClose }: { open: boolean; onClose: () =>
   const [form, setForm] = useState<CreateProfessorData>({ ...emptyForm })
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [cepLoading, setCepLoading] = useState(false)
 
   function onChange(field: keyof CreateProfessorData, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const fetchViaCep = useCallback(async (cep: string) => {
+    const digits = cep.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    setCepLoading(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const data = await res.json()
+      if (data.erro) return
+      setForm((prev) => ({
+        ...prev,
+        rua: data.logradouro || prev.rua,
+        bairro: data.bairro || prev.bairro,
+        cidade: data.localidade || prev.cidade,
+        estado: data.uf || prev.estado,
+      }))
+    } catch { /* ignore */ } finally {
+      setCepLoading(false)
+    }
+  }, [])
+
+  function handleCepChange(value: string) {
+    onChange('cep', value)
+    const digits = value.replace(/\D/g, '')
+    if (digits.length === 8) fetchViaCep(digits)
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -236,51 +277,159 @@ function CreateProfessorModal({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Cadastrar Professor" maxWidth="max-w-lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Nome completo *"
-          value={form.nome_professor}
-          onChange={(e) => onChange('nome_professor', e.target.value)}
-        />
-        <Input
-          label="E-mail *"
-          type="email"
-          value={form.email}
-          onChange={(e) => onChange('email', e.target.value)}
-        />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Senha *"
-            type="password"
-            value={form.password}
-            onChange={(e) => onChange('password', e.target.value)}
-          />
-          <Input
-            label="Confirmar senha *"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
+    <Modal open={open} onClose={handleClose} title="Cadastrar Professor" maxWidth="max-w-3xl">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Dados Pessoais */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Dados Pessoais</h4>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Input
+              label="Nome completo *"
+              value={form.nome_professor}
+              onChange={(e) => onChange('nome_professor', e.target.value)}
+            />
+            <Input
+              label="E-mail *"
+              type="email"
+              value={form.email}
+              onChange={(e) => onChange('email', e.target.value)}
+            />
+            <Input
+              label="CPF/CNPJ *"
+              value={form.cpf_cnpj}
+              onChange={(e) => onChange('cpf_cnpj', e.target.value)}
+            />
+            <Input
+              label="Senha *"
+              type="password"
+              value={form.password}
+              onChange={(e) => onChange('password', e.target.value)}
+            />
+            <Input
+              label="Confirmar senha *"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <Input
+              label="Data de Nascimento"
+              type="date"
+              value={form.data_nascimento ?? ''}
+              onChange={(e) => onChange('data_nascimento', e.target.value)}
+            />
+            <Input
+              label="DDD"
+              value={form.ddd ?? ''}
+              onChange={(e) => onChange('ddd', e.target.value)}
+              placeholder="11"
+            />
+            <Input
+              label="Telefone"
+              value={form.telefone}
+              onChange={(e) => onChange('telefone', e.target.value)}
+              placeholder="999999999"
+            />
+            <Input
+              label="Disciplina"
+              value={form.disciplina}
+              onChange={(e) => onChange('disciplina', e.target.value)}
+              placeholder="Ex: Direito Constitucional"
+            />
+          </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Telefone"
-            value={form.telefone}
-            onChange={(e) => onChange('telefone', e.target.value)}
-          />
-          <Input
-            label="CPF/CNPJ"
-            value={form.cpf_cnpj}
-            onChange={(e) => onChange('cpf_cnpj', e.target.value)}
-          />
+
+        {/* Endereço */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Endereço</h4>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                CEP
+                {cepLoading && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" />}
+              </label>
+              <input
+                value={form.cep ?? ''}
+                onChange={(e) => handleCepChange(e.target.value)}
+                placeholder="00000-000"
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              <p className="text-xs text-gray-400">Preencha o CEP para autocompletar</p>
+            </div>
+            <Input
+              label="Rua"
+              value={form.rua ?? ''}
+              onChange={(e) => onChange('rua', e.target.value)}
+            />
+            <Input
+              label="Número"
+              value={form.numero_casa_ap ?? ''}
+              onChange={(e) => onChange('numero_casa_ap', e.target.value)}
+            />
+            <Input
+              label="Bairro"
+              value={form.bairro ?? ''}
+              onChange={(e) => onChange('bairro', e.target.value)}
+            />
+            <Input
+              label="Cidade"
+              value={form.cidade ?? ''}
+              onChange={(e) => onChange('cidade', e.target.value)}
+            />
+            <Input
+              label="Estado"
+              value={form.estado ?? ''}
+              onChange={(e) => onChange('estado', e.target.value)}
+              placeholder="SP"
+            />
+          </div>
         </div>
-        <Input
-          label="Disciplina"
-          value={form.disciplina}
-          onChange={(e) => onChange('disciplina', e.target.value)}
-          placeholder="Ex: Direito Constitucional"
-        />
+
+        {/* Dados Bancários */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Dados Bancários</h4>
+          <p className="text-xs text-gray-400 mb-3">Preencha para registrar automaticamente no Pagar.me como recebedor.</p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <Input
+              label="Banco (código)"
+              value={form.banco ?? ''}
+              onChange={(e) => onChange('banco', e.target.value)}
+              placeholder="341"
+            />
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">Tipo de Conta</label>
+              <select
+                value={form.account_type ?? 'checking'}
+                onChange={(e) => onChange('account_type', e.target.value)}
+                className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="checking">Corrente</option>
+                <option value="savings">Poupança</option>
+              </select>
+            </div>
+            <Input
+              label="Agência"
+              value={form.agencia ?? ''}
+              onChange={(e) => onChange('agencia', e.target.value)}
+              placeholder="0000"
+            />
+            <Input
+              label="Dígito Agência"
+              value={form.digito_agencia ?? ''}
+              onChange={(e) => onChange('digito_agencia', e.target.value)}
+            />
+            <Input
+              label="Conta"
+              value={form.conta ?? ''}
+              onChange={(e) => onChange('conta', e.target.value)}
+              placeholder="00000"
+            />
+            <Input
+              label="Dígito Conta"
+              value={form.digito_conta ?? ''}
+              onChange={(e) => onChange('digito_conta', e.target.value)}
+            />
+          </div>
+        </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

@@ -24,13 +24,19 @@ export async function fetchAlunos(search?: string, page = 1, perPage = 20) {
     .select('id, email, display_name, phone_number, cpf, is_suspended, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
 
-  // Only show users who have 'aluno' role
+  // Only show users who have 'aluno' role but NOT 'admin' or 'professor'
   const { data: alunoRoles } = await supabase
     .from('user_roles')
     .select('user_id')
     .eq('role', 'aluno')
 
-  const alunoIds = (alunoRoles ?? []).map((r) => r.user_id)
+  const { data: nonAlunoRoles } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .in('role', ['admin', 'professor'])
+
+  const excludeIds = new Set((nonAlunoRoles ?? []).map((r) => r.user_id))
+  const alunoIds = (alunoRoles ?? []).map((r) => r.user_id).filter((id) => !excludeIds.has(id))
   if (alunoIds.length === 0) return { alunos: [] as Aluno[], total: 0, totalPages: 0 }
 
   query = query.in('id', alunoIds)
