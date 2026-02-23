@@ -3,6 +3,8 @@ import {
   fetchModulos, createModulo, updateModulo, deleteModulo, reorderModulos,
   fetchAulas, fetchAula, createAula, updateAula, deleteAula,
   fetchQuestoesAula, createQuestaoAula, updateQuestaoAula, deleteQuestaoAula,
+  fetchAudiosAula, createAudioAula, deleteAudioAula,
+  fetchTextosAula, createTextoAula, updateTextoAula, deleteTextoAula,
 } from './modulos-api'
 
 // === Módulos ===
@@ -125,5 +127,66 @@ export function useDeleteQuestaoAula() {
   return useMutation({
     mutationFn: deleteQuestaoAula,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['questoes-aula'] }),
+  })
+}
+
+// === Áudios ===
+
+export function useAudiosAula(aulaId: string | undefined) {
+  return useQuery({
+    queryKey: ['audios-aula', aulaId],
+    queryFn: () => fetchAudiosAula(aulaId!),
+    enabled: !!aulaId,
+  })
+}
+
+export function useCreateAudioAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createAudioAula,
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['audios-aula', v.aula_id] }),
+  })
+}
+
+export function useDeleteAudioAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteAudioAula,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['audios-aula'] }),
+  })
+}
+
+// === Textos ===
+
+export function useTextosAula(aulaId: string | undefined) {
+  return useQuery({
+    queryKey: ['textos-aula', aulaId],
+    queryFn: () => fetchTextosAula(aulaId!),
+    enabled: !!aulaId,
+  })
+}
+
+export function useCreateTextoAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createTextoAula,
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['textos-aula', v.aula_id] }),
+  })
+}
+
+export function useUpdateTextoAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...updates }: { id: string } & Record<string, unknown>) =>
+      updateTextoAula(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['textos-aula'] }),
+  })
+}
+
+export function useDeleteTextoAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteTextoAula,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['textos-aula'] }),
   })
 }

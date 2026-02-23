@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useParams } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { useNavigate, useParams, Link } from '@tanstack/react-router'
+import { ArrowLeft, ListVideo } from 'lucide-react'
 import { useCurso, useProfessores, useCategoriasCurso, useCreateCurso, useUpdateCurso } from './hooks'
 import {
   useCategoria,
@@ -295,9 +295,17 @@ export function CursoFormPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="flex-1 text-2xl font-bold text-gray-900">
           {isEditing ? 'Editar Curso' : 'Novo Curso'}
         </h1>
+        {isEditing && cursoId && (
+          <Link to="/cursos/$cursoId" params={{ cursoId }}>
+            <Button variant="secondary">
+              <ListVideo className="mr-2 h-4 w-4" />
+              Modulos e Aulas
+            </Button>
+          </Link>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 bg-white p-6">

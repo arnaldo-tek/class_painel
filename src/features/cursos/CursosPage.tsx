@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Search, Plus, BookOpen, Eye, Pencil, Globe, XCircle } from 'lucide-react'
+import { Search, Plus, BookOpen, Eye, Pencil, Globe, XCircle, ListVideo } from 'lucide-react'
 import { useCursos, useProfessores, useCategoriasCurso, useEncerrarCurso, useTogglePublicarCurso } from './hooks'
 import type { CursosFilters, Curso } from './api'
 import { useAuthContext } from '@/contexts/AuthContext'
@@ -230,13 +230,22 @@ export function CursosPage() {
                             </button>
                           </Tooltip>
                         )}
-                        <Tooltip text={!isAdmin ? 'Ver / Editar' : 'Ver detalhes'}>
+                        <Tooltip text={!isAdmin ? 'Editar curso' : 'Ver detalhes'}>
                           <Link to={!isAdmin ? "/cursos/$cursoId/editar" : "/cursos/$cursoId"} params={{ cursoId: curso.id }}>
                             <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                               {!isAdmin ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </Link>
                         </Tooltip>
+                        {!isAdmin && (
+                          <Tooltip text="Modulos e aulas">
+                            <Link to="/cursos/$cursoId" params={{ cursoId: curso.id }}>
+                              <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                                <ListVideo className="h-4 w-4" />
+                              </button>
+                            </Link>
+                          </Tooltip>
+                        )}
                         {!isAdmin && !curso.is_encerrado && (
                           <Tooltip text="Encerrar curso">
                             <button

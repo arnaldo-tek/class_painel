@@ -162,3 +162,81 @@ export async function deleteQuestaoAula(id: string) {
   const { error } = await supabase.from('questoes_da_aula').delete().eq('id', id)
   if (error) throw error
 }
+
+// === Áudios ===
+
+export type AudioAula = Tables<'audios_da_aula'>
+
+export async function fetchAudiosAula(aulaId: string) {
+  const { data, error } = await supabase
+    .from('audios_da_aula')
+    .select('*')
+    .eq('aula_id', aulaId)
+    .order('created_at')
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createAudioAula(audio: {
+  aula_id: string
+  titulo?: string | null
+  audio_url: string
+}) {
+  const { data, error } = await supabase
+    .from('audios_da_aula')
+    .insert(audio)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteAudioAula(id: string) {
+  const { error } = await supabase.from('audios_da_aula').delete().eq('id', id)
+  if (error) throw error
+}
+
+// === Textos ===
+
+export type TextoAula = Tables<'textos_da_aula'>
+
+export async function fetchTextosAula(aulaId: string) {
+  const { data, error } = await supabase
+    .from('textos_da_aula')
+    .select('*')
+    .eq('aula_id', aulaId)
+    .order('created_at')
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createTextoAula(texto: { aula_id: string; texto: string }) {
+  const { data, error } = await supabase
+    .from('textos_da_aula')
+    .insert(texto)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateTextoAula(id: string, updates: Partial<TextoAula>) {
+  const { data, error } = await supabase
+    .from('textos_da_aula')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteTextoAula(id: string) {
+  const { error } = await supabase.from('textos_da_aula').delete().eq('id', id)
+  if (error) throw error
+}
