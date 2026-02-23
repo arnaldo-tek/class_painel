@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Tooltip } from '@/components/ui/tooltip'
 
 function getCursoStatus(curso: Curso) {
   if (curso.is_encerrado) return { label: 'Encerrado', variant: 'danger' as const }
@@ -216,34 +217,35 @@ export function CursosPage() {
                     <TableCell>
                       <div className="flex gap-1">
                         {!isAdmin && !curso.is_encerrado && (
-                          <button
-                            onClick={() => handleTogglePublicar(curso.id, !curso.is_publicado)}
-                            title={curso.is_publicado ? 'Despublicar' : 'Publicar'}
-                            className={`rounded p-1.5 ${
-                              curso.is_publicado
-                                ? 'text-green-600 hover:bg-green-50 hover:text-green-700'
-                                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-                            }`}
-                          >
-                            <Globe className="h-4 w-4" />
-                          </button>
+                          <Tooltip text={curso.is_publicado ? 'Despublicar' : 'Publicar'}>
+                            <button
+                              onClick={() => handleTogglePublicar(curso.id, !curso.is_publicado)}
+                              className={`rounded p-1.5 ${
+                                curso.is_publicado
+                                  ? 'text-green-600 hover:bg-green-50 hover:text-green-700'
+                                  : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                              }`}
+                            >
+                              <Globe className="h-4 w-4" />
+                            </button>
+                          </Tooltip>
                         )}
-                        <Link to={!isAdmin ? "/cursos/$cursoId/editar" : "/cursos/$cursoId"} params={{ cursoId: curso.id }}>
-                          <button
-                            title={!isAdmin ? 'Ver / Editar' : 'Ver detalhes'}
-                            className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                          >
-                            {!isAdmin ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </Link>
+                        <Tooltip text={!isAdmin ? 'Ver / Editar' : 'Ver detalhes'}>
+                          <Link to={!isAdmin ? "/cursos/$cursoId/editar" : "/cursos/$cursoId"} params={{ cursoId: curso.id }}>
+                            <button className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+                              {!isAdmin ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </Link>
+                        </Tooltip>
                         {!isAdmin && !curso.is_encerrado && (
-                          <button
-                            onClick={() => handleEncerrar(curso.id, curso.nome)}
-                            title="Encerrar curso"
-                            className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </button>
+                          <Tooltip text="Encerrar curso">
+                            <button
+                              onClick={() => handleEncerrar(curso.id, curso.nome)}
+                              className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </button>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>
