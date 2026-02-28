@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { format, subDays } from 'date-fns'
 import {
   DollarSign, Search, Download, ChevronDown, ChevronRight,
-  Users, Tag, TrendingUp, Percent, Wallet,
+  Users, Tag, TrendingUp, Percent, Wallet, Loader2, ArrowUpRight,
 } from 'lucide-react'
 import {
   useVendas, useResumoVendas, useVendasPorProfessor, useVendasPorCategoria,
@@ -10,7 +10,7 @@ import {
 } from './hooks'
 import { fetchVendasParaExportar } from './api'
 import { exportVendasToExcel } from './export'
-import type { VendasFilters, PagarmeOrder, MovimentacaoVenda } from './api'
+import type { VendasFilters, MovimentacaoVenda } from './api'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,7 @@ import { Pagination } from '@/components/ui/pagination'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useProfessorProfile } from '@/hooks/useProfile'
+import { useRecipientBalance, useTransferHistory, useRequestTransfer } from '@/features/professores/payment-hooks'
 import { cn } from '@/lib/cn'
 
 const STATUS_OPTIONS = [
@@ -78,6 +79,11 @@ export function VendasPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">Vendas</h1>
+
+      {/* Professor Financial Section */}
+      {professorOnly && professorProfile?.pagarme_receiver_id && (
+        <ProfessorFinanceiro recipientId={professorProfile.pagarme_receiver_id} />
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
@@ -290,57 +296,35 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
             <TableHeader>
               <TableRow>
                 <TableHead>Cliente</TableHead>
-                <TableHead>{professorId ? 'Curso' : 'Itens'}</TableHead>
+                <TableHead>Curso</TableHead>
                 <TableHead>Valor</TableHead>
-                <TableHead>{professorId ? '' : 'Pagamento'}</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Data</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {professorId
-                ? (data.vendas as MovimentacaoVenda[]).map((v) => {
-                    const badge = statusBadge[v.status] ?? statusBadge.pending
-                    return (
-                      <TableRow key={v.id}>
-                        <TableCell>
-                          <p className="font-medium">{v.nome_cliente ?? '—'}</p>
-                          <p className="text-xs text-gray-500">{v.email_cliente ?? ''}</p>
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">{v.nome_curso ?? '—'}</TableCell>
-                        <TableCell className="font-medium">{formatCurrency(v.valor)}</TableCell>
-                        <TableCell />
-                        <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
-                        <TableCell className="text-gray-500">
-                          {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                : (data.vendas as PagarmeOrder[]).map((v) => {
-                    const badge = statusBadge[v.status] ?? statusBadge.pending
-                    const charge = v.charges?.[0]
-                    const paymentMethod = charge?.payment_method
-                      ? (paymentMethodLabels[charge.payment_method] ?? charge.payment_method)
-                      : '—'
-                    const itemsDesc = v.items?.map((i) => i.description).join(', ') || '—'
-                    return (
-                      <TableRow key={v.id}>
-                        <TableCell>
-                          <p className="font-medium">{v.customer?.name ?? '—'}</p>
-                          <p className="text-xs text-gray-500">{v.customer?.email ?? ''}</p>
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={itemsDesc}>{itemsDesc}</TableCell>
-                        <TableCell className="font-medium">{formatCurrency(v.amount / 100)}</TableCell>
-                        <TableCell className="text-gray-500">{paymentMethod}</TableCell>
-                        <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
-                        <TableCell className="text-gray-500">
-                          {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-              }
+              {(data.vendas as MovimentacaoVenda[]).map((v) => {
+                const badge = statusBadge[v.status] ?? statusBadge.pending
+                const paymentMethod = v.metodo_pagamento
+                  ? (paymentMethodLabels[v.metodo_pagamento] ?? v.metodo_pagamento)
+                  : '—'
+                return (
+                  <TableRow key={v.id}>
+                    <TableCell>
+                      <p className="font-medium">{v.nome_cliente ?? '—'}</p>
+                      <p className="text-xs text-gray-500">{v.email_cliente ?? ''}</p>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">{v.nome_curso ?? '—'}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(v.valor)}</TableCell>
+                    <TableCell className="text-gray-500">{paymentMethod}</TableCell>
+                    <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
+                    <TableCell className="text-gray-500">
+                      {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
           <Pagination
@@ -639,6 +623,142 @@ function MiniCard({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
       <p className="text-xs text-gray-500">{label}</p>
       <p className="text-sm font-bold text-gray-900">{value}</p>
+    </div>
+  )
+}
+
+// ─── Professor Financeiro (saldo + transferência) ────────────────────────
+
+function ProfessorFinanceiro({ recipientId }: { recipientId: string }) {
+  const { data: balance, isLoading: loadingBalance } = useRecipientBalance(recipientId)
+  const { data: transfers } = useTransferHistory(recipientId)
+  const transferMutation = useRequestTransfer()
+  const [amount, setAmount] = useState('')
+  const [showHistory, setShowHistory] = useState(false)
+
+  function handleTransfer() {
+    const cents = Math.round(parseFloat(amount) * 100)
+    if (!cents || cents <= 0) return
+    transferMutation.mutate(
+      { recipientId, amount: cents },
+      { onSuccess: () => setAmount('') },
+    )
+  }
+
+  const statusColors: Record<string, string> = {
+    pending: 'bg-yellow-100 text-yellow-800',
+    transferred: 'bg-green-100 text-green-800',
+    failed: 'bg-red-100 text-red-800',
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-5">
+      <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <Wallet className="h-5 w-5 text-purple-600" />
+        Meu Financeiro
+      </h2>
+
+      {/* Balance Cards */}
+      {loadingBalance ? (
+        <div className="flex justify-center py-4"><Loader2 className="h-6 w-6 animate-spin text-gray-400" /></div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs font-medium text-emerald-600">Disponível para saque</p>
+            <p className="mt-1 text-xl font-bold text-emerald-700">
+              {formatCurrency((balance?.available_amount ?? 0) / 100)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+            <p className="text-xs font-medium text-yellow-600">Aguardando liberação</p>
+            <p className="mt-1 text-xl font-bold text-yellow-700">
+              {formatCurrency((balance?.waiting_funds_amount ?? 0) / 100)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs font-medium text-blue-600">Já transferido</p>
+            <p className="mt-1 text-xl font-bold text-blue-700">
+              {formatCurrency((balance?.transferred_amount ?? 0) / 100)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer Form */}
+      <div className="flex items-end gap-3">
+        <div className="flex-1 max-w-xs">
+          <Input
+            label="Solicitar transferência (R$)"
+            type="number"
+            step="0.01"
+            min="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0,00"
+          />
+        </div>
+        <Button
+          onClick={handleTransfer}
+          disabled={transferMutation.isPending || !amount || parseFloat(amount) <= 0}
+        >
+          {transferMutation.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowUpRight className="mr-2 h-4 w-4" />
+          )}
+          Transferir
+        </Button>
+      </div>
+      {transferMutation.isError && (
+        <p className="text-sm text-red-600">{transferMutation.error.message}</p>
+      )}
+      {transferMutation.isSuccess && (
+        <p className="text-sm text-green-600">Transferência solicitada com sucesso!</p>
+      )}
+
+      {/* Transfer History Toggle */}
+      {(transfers?.length ?? 0) > 0 && (
+        <div>
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            {showHistory ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            Histórico de transferências ({transfers?.length})
+          </button>
+
+          {showHistory && (
+            <div className="mt-3 overflow-x-auto rounded-lg border border-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">Data</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">Valor</th>
+                    <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {transfers?.map((t) => (
+                    <tr key={t.id}>
+                      <td className="px-4 py-2 text-gray-700">
+                        {new Date(t.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-4 py-2 text-gray-900 font-medium">
+                        {formatCurrency(Number(t.amount))}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[t.status] ?? 'bg-gray-100 text-gray-800'}`}>
+                          {t.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

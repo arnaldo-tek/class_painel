@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Modal } from '@/components/ui/modal'
 import { FileUpload } from '@/components/ui/file-upload'
 import { uploadFile } from '@/lib/storage'
+import { supabase } from '@/lib/supabase'
 
 const statusBadge: Record<string, { label: string; variant: 'warning' | 'success' | 'danger' }> = {
   em_analise: { label: 'Em análise', variant: 'warning' },
@@ -655,7 +656,9 @@ function RegisterRecipientModal({
         number: form.phone,
       },
       birthdate: form.birthdate || undefined,
-      monthly_income: form.monthly_income ? parseInt(form.monthly_income) : undefined,
+      monthly_income: form.monthly_income
+        ? Math.round(parseFloat(form.monthly_income.replace(/\./g, '').replace(',', '.')) * 100)
+        : undefined,
       address: {
         street: form.street,
         number: form.number,
@@ -679,7 +682,28 @@ function RegisterRecipientModal({
       },
     }
 
-    registerMutation.mutate(data, { onSuccess: onClose })
+    registerMutation.mutate(data, {
+      onSuccess: async () => {
+        // Atualiza dados bancários e de endereço no professor_profiles
+        await supabase
+          .from('professor_profiles')
+          .update({
+            banco: form.bank,
+            agencia: form.branch_number,
+            digito_agencia: form.branch_check_digit || null,
+            conta: form.account_number,
+            digito_conta: form.account_check_digit,
+            cpf_cnpj: form.document,
+            rua: form.street,
+            numero_casa_ap: form.number,
+            bairro: form.neighborhood,
+            cidade: form.city,
+            estado: form.state,
+          })
+          .eq('id', professor.id)
+        onClose()
+      },
+    })
   }
 
   return (
@@ -708,7 +732,7 @@ function RegisterRecipientModal({
           <Input label="Telefone" value={form.phone} onChange={(e) => onChange('phone', e.target.value)} placeholder="999999999" />
           <Input label="Data de Nascimento" type="date" value={form.birthdate} onChange={(e) => onChange('birthdate', e.target.value)} />
         </div>
-        <Input label="Renda Mensal (centavos)" value={form.monthly_income} onChange={(e) => onChange('monthly_income', e.target.value)} placeholder="500000" />
+        <Input label="Renda Mensal (R$)" value={form.monthly_income} onChange={(e) => onChange('monthly_income', e.target.value)} placeholder="5000,00" />
 
         <h3 className="text-sm font-semibold text-gray-700 pt-2">Endereço</h3>
         <div className="grid gap-4 sm:grid-cols-3">

@@ -2,7 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
 import { createSupabaseFromRequest, createSupabaseAdmin } from '../_shared/supabase.ts'
 import { pagarmeRequest, buildSplitRules } from '../_shared/pagarme.ts'
-import { resolveReceiverIds, resolveProfessorId, applyCoupon } from '../_shared/checkout.ts'
+import { resolveReceiverIds, resolveProfessorId, applyCoupon, createMovimentacaoSplits } from '../_shared/checkout.ts'
 
 interface PixCheckoutBody {
   customer_id: string
@@ -77,7 +77,7 @@ serve(async (req) => {
 
     // Create movimentacao record
     const professorId = await resolveProfessorId(admin, body.curso_id)
-    await admin.from('movimentacoes').insert({
+    const { data: mov } = await admin.from('movimentacoes').insert({
       pagarme_order_id: order.id,
       valor: finalAmount / 100,
       valor_curso: body.amount / 100,
@@ -87,7 +87,12 @@ serve(async (req) => {
       pacote_id: body.pacote_id ?? null,
       professor_id: professorId,
       status: 'pending',
-    })
+    }).select('id').single()
+
+    // Create splits for professor earnings tracking
+    if (mov) {
+      await createMovimentacaoSplits(admin, mov.id, finalAmount, body.curso_id, body.pacote_id)
+    }
 
     return jsonResponse({
       order_id: order.id,

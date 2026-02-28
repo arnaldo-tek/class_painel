@@ -1,5 +1,5 @@
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
-import { createSupabaseAdmin, createSupabaseFromRequest, hasRole } from '../_shared/supabase.ts'
+import { createSupabaseAdmin, createSupabaseFromRequest, hasRole, isAdminOrProfessor } from '../_shared/supabase.ts'
 import { pagarmeRequest, PagarmeError } from '../_shared/pagarme.ts'
 
 Deno.serve(async (req) => {
@@ -11,14 +11,28 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return errorResponse('Unauthorized', 401)
 
-    // Only admins can initiate transfers
-    if (!await hasRole(supabase, user.id, 'admin')) {
-      return errorResponse('Apenas admins podem realizar transferências', 403)
+    // Admins and professors can initiate transfers
+    if (!await isAdminOrProfessor(supabase, user.id)) {
+      return errorResponse('Acesso negado', 403)
     }
 
     const { amount, recipient_id } = await req.json()
     if (!amount || !recipient_id) {
       return errorResponse('amount (in cents) and recipient_id are required')
+    }
+
+    // If professor, ensure they can only transfer to their own recipient
+    const isAdmin = await hasRole(supabase, user.id, 'admin')
+    if (!isAdmin) {
+      const admin = createSupabaseAdmin()
+      const { data: prof } = await admin
+        .from('professor_profiles')
+        .select('pagarme_receiver_id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+      if (prof?.pagarme_receiver_id !== recipient_id) {
+        return errorResponse('Você só pode transferir para sua própria conta', 403)
+      }
     }
 
     // Create transfer via VPS proxy (IP fixo required by Pagar.me)

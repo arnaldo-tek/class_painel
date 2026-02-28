@@ -70,12 +70,35 @@ export async function fetchVendas(filters: VendasFilters): Promise<VendasResult>
 }
 
 export async function fetchResumoVendas(dateFrom?: string, dateTo?: string, professorId?: string) {
+  // For professors, use splits table for accurate per-professor totals
+  if (professorId) {
+    let query = supabase
+      .from('movimentacao_splits')
+      .select('valor_bruto, valor_professor, valor_plataforma, movimentacoes!inner(status, created_at)')
+      .eq('professor_id', professorId)
+      .eq('movimentacoes.status', 'paid' as any)
+
+    if (dateFrom) query = query.gte('movimentacoes.created_at', dateFrom)
+    if (dateTo) query = query.lte('movimentacoes.created_at', dateTo + 'T23:59:59')
+
+    const { data, error } = await query
+    if (error) throw error
+
+    const rows = data ?? []
+    const totalReceita = rows.reduce((s, r) => s + Number((r as any).valor_bruto ?? 0), 0)
+    const totalPlataforma = rows.reduce((s, r) => s + Number((r as any).valor_plataforma ?? 0), 0)
+    const totalProfessores = rows.reduce((s, r) => s + Number((r as any).valor_professor ?? 0), 0)
+    const totalVendas = rows.length
+
+    return { totalReceita, totalPlataforma, totalProfessores, totalVendas }
+  }
+
+  // For admin, use movimentacoes directly
   let query = supabase
     .from('movimentacoes')
     .select('valor, taxa_plataforma, status')
     .eq('status', 'paid')
 
-  if (professorId) query = query.eq('professor_id', professorId)
   if (dateFrom) query = query.gte('created_at', dateFrom)
   if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
 
@@ -329,13 +352,51 @@ export interface MovimentacaoVenda {
 export async function fetchVendasMovimentacoes(filters: VendasFilters): Promise<VendasResult> {
   const { status, dateFrom, dateTo, professorId, page = 1, perPage = 20 } = filters
 
+  if (professorId) {
+    // Professor view: query via splits to include package sales
+    let query = supabase
+      .from('movimentacao_splits')
+      .select('id, valor_bruto, valor_professor, valor_plataforma, curso_id, cursos(nome), movimentacoes!inner(id, pagarme_order_id, status, created_at, nome_cliente, email_cliente, profiles(display_name, email))', { count: 'exact' })
+      .eq('professor_id', professorId)
+      .order('created_at', { ascending: false, referencedTable: 'movimentacoes' })
+      .range((page - 1) * perPage, page * perPage - 1)
+
+    if (status) query = query.eq('movimentacoes.status', status as any)
+    if (dateFrom) query = query.gte('movimentacoes.created_at', dateFrom)
+    if (dateTo) query = query.lte('movimentacoes.created_at', dateTo + 'T23:59:59')
+
+    const { data, error, count } = await query
+    if (error) throw error
+
+    const vendas: MovimentacaoVenda[] = (data ?? []).map((row: any) => {
+      const mov = row.movimentacoes
+      return {
+        id: row.id,
+        pagarme_order_id: mov?.pagarme_order_id ?? null,
+        valor: Number(row.valor_bruto ?? 0),
+        valor_curso: null,
+        taxa_plataforma: Number(row.valor_plataforma ?? 0),
+        status: mov?.status ?? 'pending',
+        created_at: mov?.created_at ?? '',
+        nome_cliente: mov?.nome_cliente || mov?.profiles?.display_name || null,
+        email_cliente: mov?.email_cliente || mov?.profiles?.email || null,
+        nome_curso: row.cursos?.nome || null,
+        curso_nome_join: row.cursos?.nome || null,
+        metodo_pagamento: null,
+      }
+    })
+
+    const total = count ?? vendas.length
+    return { vendas, total, totalPages: Math.ceil(total / perPage) }
+  }
+
+  // Admin view: query movimentacoes directly
   let query = supabase
     .from('movimentacoes')
     .select('id, pagarme_order_id, valor, valor_curso, taxa_plataforma, status, created_at, nome_cliente, email_cliente, nome_curso, cursos(nome), profiles(display_name, email)', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range((page - 1) * perPage, page * perPage - 1)
 
-  if (professorId) query = query.eq('professor_id', professorId)
   if (status) query = query.eq('status', status as any)
   if (dateFrom) query = query.gte('created_at', dateFrom)
   if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
@@ -365,19 +426,49 @@ export async function fetchVendasMovimentacoes(filters: VendasFilters): Promise<
 // === Exportar todas as vendas para Excel ===
 
 export async function fetchVendasParaExportar(dateFrom?: string, dateTo?: string, professorId?: string) {
+  if (professorId) {
+    // Professor: export via splits
+    let query = supabase
+      .from('movimentacao_splits')
+      .select('valor_bruto, valor_professor, valor_plataforma, cursos(nome), movimentacoes!inner(pagarme_order_id, status, created_at, nome_cliente, email_cliente, contato_cliente, profiles(display_name, email))')
+      .eq('professor_id', professorId)
+      .order('created_at', { ascending: false, referencedTable: 'movimentacoes' })
+
+    if (dateFrom) query = query.gte('movimentacoes.created_at', dateFrom)
+    if (dateTo) query = query.lte('movimentacoes.created_at', dateTo + 'T23:59:59')
+
+    const { data, error } = await query
+    if (error) throw error
+
+    return (data ?? []).map((row: any) => {
+      const mov = row.movimentacoes
+      return {
+        pagarme_order_id: mov?.pagarme_order_id,
+        valor: row.valor_bruto,
+        nome_curso: row.cursos?.nome || null,
+        valor_curso: row.valor_bruto,
+        nome_cliente: mov?.nome_cliente || mov?.profiles?.display_name || null,
+        email_cliente: mov?.email_cliente || mov?.profiles?.email || null,
+        contato_cliente: mov?.contato_cliente || null,
+        created_at: mov?.created_at,
+        taxa_plataforma: row.valor_plataforma,
+        status: mov?.status,
+      }
+    })
+  }
+
+  // Admin: export all
   let query = supabase
     .from('movimentacoes')
     .select('pagarme_order_id, valor, nome_curso, valor_curso, nome_cliente, email_cliente, contato_cliente, created_at, taxa_plataforma, status, cursos(nome), profiles(display_name, email)')
     .order('created_at', { ascending: false })
 
-  if (professorId) query = query.eq('professor_id', professorId)
   if (dateFrom) query = query.gte('created_at', dateFrom)
   if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
 
   const { data, error } = await query
   if (error) throw error
 
-  // Fill denormalized fields from joins if missing
   return (data ?? []).map((row: any) => ({
     ...row,
     nome_cliente: row.nome_cliente || row.profiles?.display_name || null,

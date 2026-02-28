@@ -55,7 +55,7 @@ export interface PagarmeRequestOptions {
 /** Generic Pagar.me API call */
 export async function pagarmeRequest<T = unknown>(
   path: string,
-  method: 'GET' | 'POST' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
   body?: unknown,
   options?: PagarmeRequestOptions,
 ): Promise<T> {

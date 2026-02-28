@@ -107,6 +107,94 @@ export async function applyCoupon(
   return final
 }
 
+/**
+ * Create splits for a movimentacao — tracks how much each professor earns.
+ * For individual courses: 1 split.
+ * For packages: N splits, proportional to each course's price (preco > 0 only).
+ */
+export async function createMovimentacaoSplits(
+  supabase: SupabaseClient,
+  movimentacaoId: string,
+  valorFinalCents: number,
+  cursoId?: string,
+  pacoteId?: string,
+) {
+  const valorTotal = valorFinalCents / 100
+
+  interface CourseInfo {
+    curso_id: string
+    professor_id: string
+    preco: number
+  }
+
+  const courses: CourseInfo[] = []
+
+  if (cursoId) {
+    const { data } = await supabase
+      .from('cursos')
+      .select('id, professor_id, preco')
+      .eq('id', cursoId)
+      .single()
+    if (data && Number(data.preco ?? 0) > 0) {
+      courses.push({ curso_id: data.id, professor_id: data.professor_id, preco: Number(data.preco) })
+    }
+  }
+
+  if (pacoteId) {
+    const { data } = await supabase
+      .from('pacote_cursos')
+      .select('curso_id, cursos(id, professor_id, preco)')
+      .eq('pacote_id', pacoteId)
+    if (data) {
+      for (const row of data) {
+        const curso = (row as any).cursos
+        if (curso && Number(curso.preco ?? 0) > 0) {
+          courses.push({ curso_id: curso.id, professor_id: curso.professor_id, preco: Number(curso.preco) })
+        }
+      }
+    }
+  }
+
+  if (courses.length === 0) return
+
+  // Calculate proportional splits
+  const totalPrecos = courses.reduce((sum, c) => sum + c.preco, 0)
+
+  // Group by professor (a professor may have multiple courses in a package)
+  const profMap = new Map<string, { professor_id: string; curso_id: string; proporcao: number }>()
+  for (const c of courses) {
+    const proporcao = c.preco / totalPrecos
+    const existing = profMap.get(c.professor_id + ':' + c.curso_id)
+    if (existing) {
+      existing.proporcao += proporcao
+    } else {
+      profMap.set(c.professor_id + ':' + c.curso_id, {
+        professor_id: c.professor_id,
+        curso_id: c.curso_id,
+        proporcao,
+      })
+    }
+  }
+
+  const splits = Array.from(profMap.values()).map((entry) => {
+    const valorBruto = Math.round(valorTotal * entry.proporcao * 100) / 100
+    const valorPlataforma = Math.round(valorBruto * 0.25 * 100) / 100
+    const valorProfessor = Math.round((valorBruto - valorPlataforma) * 100) / 100
+    return {
+      movimentacao_id: movimentacaoId,
+      professor_id: entry.professor_id,
+      curso_id: entry.curso_id,
+      valor_bruto: valorBruto,
+      valor_professor: valorProfessor,
+      valor_plataforma: valorPlataforma,
+    }
+  })
+
+  if (splits.length > 0) {
+    await supabase.from('movimentacao_splits').insert(splits)
+  }
+}
+
 /** Create enrollment for a user (course and/or package) */
 export async function createEnrollment(
   supabase: SupabaseClient,

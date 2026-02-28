@@ -474,6 +474,7 @@ function AulaGeralTab({
     titulo: aula?.titulo ?? '',
     descricao: aula?.descricao ?? '',
     texto_aula: aula?.texto_aula ?? '',
+    video_url: (aula as any)?.video_url ?? '',
     pdf: aula?.pdf ?? '',
     imagem_capa: aula?.imagem_capa ?? '',
     is_degustacao: aula?.is_degustacao ?? false,
@@ -496,6 +497,7 @@ function AulaGeralTab({
           titulo: form.titulo.trim(),
           descricao: form.descricao || null,
           texto_aula: form.texto_aula || null,
+          video_url: form.video_url || null,
           pdf: form.pdf || null,
           imagem_capa: form.imagem_capa || null,
           is_degustacao: form.is_degustacao,
@@ -553,6 +555,22 @@ function AulaGeralTab({
               placeholder="Conteudo textual da aula..."
             />
           </div>
+
+          <FileUpload
+            label="Video da Aula"
+            accept="video/*"
+            value={form.video_url || null}
+            onChange={(url) => handleChange('video_url', url ?? '')}
+            onUpload={async (file) => {
+              try {
+                return await uploadFile('aulas', file, 'videos')
+              } catch (err) {
+                setError(`Erro ao subir video: ${err instanceof Error ? err.message : String(err)}`)
+                throw err
+              }
+            }}
+            type="video"
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <FileUpload

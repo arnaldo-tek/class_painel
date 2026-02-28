@@ -10,9 +10,7 @@ import {
 export function useVendas(filters: VendasFilters) {
   return useQuery<VendasResult>({
     queryKey: ['vendas', filters],
-    queryFn: () => filters.professorId
-      ? fetchVendasMovimentacoes(filters)
-      : fetchVendas(filters),
+    queryFn: () => fetchVendasMovimentacoes(filters),
   })
 }
 

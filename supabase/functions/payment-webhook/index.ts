@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
 import { createSupabaseAdmin } from '../_shared/supabase.ts'
+import { createMovimentacaoSplits } from '../_shared/checkout.ts'
 
 serve(async (req) => {
   const cors = handleCors(req)
@@ -42,12 +43,22 @@ async function handleOrderPaid(supabase: any, data: Record<string, any>) {
     .from('movimentacoes')
     .update({ status: 'paid' })
     .eq('pagarme_order_id', orderId)
-    .select('user_id, curso_id, pacote_id')
+    .select('id, user_id, curso_id, pacote_id, valor')
     .maybeSingle()
 
   if (!mov) {
     console.warn(`No movimentacao found for order ${orderId}`)
     return
+  }
+
+  // Ensure splits exist (may not if created before splits feature or on error)
+  const { count } = await supabase
+    .from('movimentacao_splits')
+    .select('id', { count: 'exact', head: true })
+    .eq('movimentacao_id', mov.id)
+  if (!count || count === 0) {
+    const valorCents = Math.round(Number(mov.valor) * 100)
+    await createMovimentacaoSplits(supabase, mov.id, valorCents, mov.curso_id ?? undefined, mov.pacote_id ?? undefined)
   }
 
   // Create enrollment
