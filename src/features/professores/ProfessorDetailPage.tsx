@@ -643,17 +643,50 @@ function RegisterRecipientModal({
     if (digits.length === 8) fetchViaCep(digits)
   }
 
+  const [validationError, setValidationError] = useState('')
+
   function handleSubmit() {
+    setValidationError('')
+
+    // Sanitize bank code: max 3 digits, no leading zeros
+    const bankCode = form.bank.replace(/\D/g, '').replace(/^0+/, '').slice(0, 3)
+    if (!bankCode) {
+      setValidationError('Código do banco inválido (ex: 260, 1, 341)')
+      return
+    }
+
+    // Sanitize holder name: max 30 chars
+    const holderName = form.name.trim().slice(0, 30)
+    if (holderName.length < 2) {
+      setValidationError('Nome deve ter pelo menos 2 caracteres')
+      return
+    }
+
+    // Validate required fields
+    const docDigits = form.document.replace(/\D/g, '')
+    if (docDigits.length !== 11 && docDigits.length !== 14) {
+      setValidationError('CPF deve ter 11 dígitos ou CNPJ 14 dígitos')
+      return
+    }
+    if (!form.ddd || !form.phone) {
+      setValidationError('DDD e telefone são obrigatórios')
+      return
+    }
+    if (!form.branch_number || !form.account_number || !form.account_check_digit) {
+      setValidationError('Agência, conta e dígito da conta são obrigatórios')
+      return
+    }
+
     const data: RegisterRecipientData = {
       professor_id: professor.id,
       type: form.type,
-      name: form.name,
+      name: holderName,
       email: form.email,
-      document: form.document,
+      document: docDigits,
       phone: {
         country_code: '55',
-        area_code: form.ddd,
-        number: form.phone,
+        area_code: form.ddd.replace(/\D/g, ''),
+        number: form.phone.replace(/\D/g, ''),
       },
       birthdate: form.birthdate || undefined,
       monthly_income: form.monthly_income
@@ -666,18 +699,18 @@ function RegisterRecipientModal({
         neighborhood: form.neighborhood,
         city: form.city,
         state: form.state,
-        zip_code: form.zip_code,
+        zip_code: form.zip_code.replace(/\D/g, ''),
         country: 'BR',
       },
       bank_account: {
-        bank: form.bank,
-        branch_number: form.branch_number,
-        branch_check_digit: form.branch_check_digit || undefined,
-        account_number: form.account_number,
+        bank: bankCode,
+        branch_number: form.branch_number.replace(/\D/g, ''),
+        branch_check_digit: form.branch_check_digit?.replace(/\D/g, '') || undefined,
+        account_number: form.account_number.replace(/\D/g, ''),
         account_check_digit: form.account_check_digit,
         type: form.account_type,
-        holder_name: form.name,
-        holder_document: form.document,
+        holder_name: holderName,
+        holder_document: docDigits,
         holder_type: form.type,
       },
     }
@@ -724,7 +757,10 @@ function RegisterRecipientModal({
           <Input label="CPF/CNPJ" value={form.document} onChange={(e) => onChange('document', e.target.value)} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Nome" value={form.name} onChange={(e) => onChange('name', e.target.value)} />
+          <div>
+            <Input label="Nome do titular (máx. 30 caracteres)" value={form.name} onChange={(e) => onChange('name', e.target.value.slice(0, 30))} maxLength={30} />
+            {form.name.length > 25 && <p className="text-xs text-orange-500 mt-0.5">{form.name.length}/30</p>}
+          </div>
           <Input label="E-mail" value={form.email} onChange={(e) => onChange('email', e.target.value)} />
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -774,7 +810,7 @@ function RegisterRecipientModal({
 
         <h3 className="text-sm font-semibold text-gray-700 pt-2">Conta Bancária</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Banco (código)" value={form.bank} onChange={(e) => onChange('bank', e.target.value)} placeholder="341" />
+          <Input label="Banco (código)" value={form.bank} onChange={(e) => onChange('bank', e.target.value.replace(/\D/g, '').slice(0, 3))} placeholder="260" maxLength={3} />
           <div>
             <label className="block text-sm font-medium text-gray-700">Tipo de Conta</label>
             <select
@@ -804,6 +840,9 @@ function RegisterRecipientModal({
           Registrar
         </Button>
       </div>
+      {validationError && (
+        <p className="mt-2 text-sm text-red-600">{validationError}</p>
+      )}
       {registerMutation.isError && (
         <p className="mt-2 text-sm text-red-600">{registerMutation.error.message}</p>
       )}
