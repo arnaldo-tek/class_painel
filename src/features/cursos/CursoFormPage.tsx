@@ -84,7 +84,6 @@ export function CursoFormPage() {
       categoriaId: form.categoria_id || undefined,
       estadoId: form.estado_id || undefined,
       municipioId: form.municipio_id || undefined,
-      escolaridadeId: form.escolaridade_id || undefined,
     },
     filtroOrgao,
   )

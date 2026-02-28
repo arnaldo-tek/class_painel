@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase'
 import type { Tables } from '@/types/database'
-import type { OrderStatus } from '@/types/enums'
 
 export type Movimentacao = Tables<'movimentacoes'>
 
@@ -39,7 +38,13 @@ export interface VendasFilters {
   perPage?: number
 }
 
-export async function fetchVendas(filters: VendasFilters) {
+export interface VendasResult {
+  vendas: (PagarmeOrder | MovimentacaoVenda)[]
+  total: number
+  totalPages: number
+}
+
+export async function fetchVendas(filters: VendasFilters): Promise<VendasResult> {
   const { status, dateFrom, dateTo, page = 1, perPage = 20 } = filters
 
   const body: Record<string, unknown> = {
@@ -304,20 +309,81 @@ export async function fetchVendasDetalheCategoria(
   return Array.from(grouped.values()).sort((a, b) => b.fat_total - a.fat_total)
 }
 
-// === Exportar todas as vendas para Excel ===
+// === Vendas do professor (via movimentacoes) ===
 
-export async function fetchVendasParaExportar(dateFrom?: string, dateTo?: string) {
+export interface MovimentacaoVenda {
+  id: string
+  pagarme_order_id: string | null
+  valor: number
+  valor_curso: number | null
+  taxa_plataforma: number | null
+  status: string
+  created_at: string
+  nome_cliente: string | null
+  email_cliente: string | null
+  nome_curso: string | null
+  curso_nome_join: string | null
+  metodo_pagamento: string | null
+}
+
+export async function fetchVendasMovimentacoes(filters: VendasFilters): Promise<VendasResult> {
+  const { status, dateFrom, dateTo, professorId, page = 1, perPage = 20 } = filters
+
   let query = supabase
     .from('movimentacoes')
-    .select('pagarme_order_id, valor, nome_curso, valor_curso, nome_cliente, email_cliente, contato_cliente, created_at, taxa_plataforma, status')
+    .select('id, pagarme_order_id, valor, valor_curso, taxa_plataforma, status, created_at, nome_cliente, email_cliente, nome_curso, cursos(nome), profiles(display_name, email)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range((page - 1) * perPage, page * perPage - 1)
+
+  if (professorId) query = query.eq('professor_id', professorId)
+  if (status) query = query.eq('status', status as any)
+  if (dateFrom) query = query.gte('created_at', dateFrom)
+  if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
+
+  const { data, error, count } = await query
+  if (error) throw error
+
+  const vendas: MovimentacaoVenda[] = (data ?? []).map((row: any) => ({
+    id: row.id,
+    pagarme_order_id: row.pagarme_order_id,
+    valor: Number(row.valor ?? 0),
+    valor_curso: row.valor_curso ? Number(row.valor_curso) : null,
+    taxa_plataforma: row.taxa_plataforma ? Number(row.taxa_plataforma) : null,
+    status: row.status,
+    created_at: row.created_at,
+    nome_cliente: row.nome_cliente || row.profiles?.display_name || null,
+    email_cliente: row.email_cliente || row.profiles?.email || null,
+    nome_curso: row.nome_curso || row.cursos?.nome || null,
+    curso_nome_join: row.cursos?.nome || null,
+    metodo_pagamento: null,
+  }))
+
+  const total = count ?? vendas.length
+  return { vendas, total, totalPages: Math.ceil(total / perPage) }
+}
+
+// === Exportar todas as vendas para Excel ===
+
+export async function fetchVendasParaExportar(dateFrom?: string, dateTo?: string, professorId?: string) {
+  let query = supabase
+    .from('movimentacoes')
+    .select('pagarme_order_id, valor, nome_curso, valor_curso, nome_cliente, email_cliente, contato_cliente, created_at, taxa_plataforma, status, cursos(nome), profiles(display_name, email)')
     .order('created_at', { ascending: false })
 
+  if (professorId) query = query.eq('professor_id', professorId)
   if (dateFrom) query = query.gte('created_at', dateFrom)
   if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59')
 
   const { data, error } = await query
   if (error) throw error
-  return data ?? []
+
+  // Fill denormalized fields from joins if missing
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    nome_cliente: row.nome_cliente || row.profiles?.display_name || null,
+    email_cliente: row.email_cliente || row.profiles?.email || null,
+    nome_curso: row.nome_curso || row.cursos?.nome || null,
+  }))
 }
 
 // === Cupons ===
@@ -328,6 +394,7 @@ export async function fetchCupons() {
   const { data, error } = await supabase
     .from('cupons')
     .select('*')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -358,6 +425,9 @@ export async function updateCupom(id: string, updates: Partial<Cupom>) {
 }
 
 export async function deleteCupom(id: string) {
-  const { error } = await supabase.from('cupons').delete().eq('id', id)
+  const { error } = await supabase
+    .from('cupons')
+    .update({ deleted_at: new Date().toISOString(), is_active: false })
+    .eq('id', id)
   if (error) throw error
 }

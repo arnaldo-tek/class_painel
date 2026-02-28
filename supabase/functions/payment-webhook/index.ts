@@ -43,7 +43,7 @@ async function handleOrderPaid(supabase: any, data: Record<string, any>) {
     .update({ status: 'paid' })
     .eq('pagarme_order_id', orderId)
     .select('user_id, curso_id, pacote_id')
-    .single()
+    .maybeSingle()
 
   if (!mov) {
     console.warn(`No movimentacao found for order ${orderId}`)
@@ -96,7 +96,7 @@ async function handleOrderFailed(supabase: any, data: Record<string, any>) {
     .update({ status: 'failed' })
     .eq('pagarme_order_id', orderId)
     .select('user_id')
-    .single()
+    .maybeSingle()
 
   if (mov) {
     await supabase.from('notificacoes').insert({

@@ -1,16 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  fetchVendas, fetchResumoVendas, fetchCupons, createCupom, updateCupom, deleteCupom,
+  fetchVendas, fetchVendasMovimentacoes, fetchResumoVendas, fetchCupons, createCupom, updateCupom, deleteCupom,
   fetchVendasPorProfessor, fetchVendasPorCategoria,
   fetchVendasDetalheProfessor, fetchVendasDetalheCategoria,
   fetchVendasParaExportar,
-  type VendasFilters,
+  type VendasFilters, type VendasResult,
 } from './api'
 
 export function useVendas(filters: VendasFilters) {
-  return useQuery({
+  return useQuery<VendasResult>({
     queryKey: ['vendas', filters],
-    queryFn: () => fetchVendas(filters),
+    queryFn: () => filters.professorId
+      ? fetchVendasMovimentacoes(filters)
+      : fetchVendas(filters),
   })
 }
 

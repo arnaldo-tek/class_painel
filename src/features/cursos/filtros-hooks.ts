@@ -20,7 +20,7 @@ export function useCategoria(id: string | undefined) {
 
 export function useEstados(enabled: boolean) {
   return useQuery({
-    queryKey: ['estados'],
+    queryKey: ['curso-filter', 'estados'],
     queryFn: fetchEstados,
     enabled,
   })
@@ -28,7 +28,7 @@ export function useEstados(enabled: boolean) {
 
 export function useMunicipios(estadoId: string | undefined, enabled: boolean) {
   return useQuery({
-    queryKey: ['municipios', estadoId],
+    queryKey: ['curso-filter', 'municipios', estadoId],
     queryFn: () => fetchMunicipios(estadoId!),
     enabled: enabled && !!estadoId,
   })
@@ -36,7 +36,7 @@ export function useMunicipios(estadoId: string | undefined, enabled: boolean) {
 
 export function useEscolaridades(enabled: boolean) {
   return useQuery({
-    queryKey: ['escolaridades'],
+    queryKey: ['curso-filter', 'escolaridades'],
     queryFn: fetchEscolaridades,
     enabled,
   })
@@ -44,7 +44,7 @@ export function useEscolaridades(enabled: boolean) {
 
 export function useNiveis(enabled: boolean) {
   return useQuery({
-    queryKey: ['niveis'],
+    queryKey: ['curso-filter', 'niveis'],
     queryFn: fetchNiveis,
     enabled,
   })
@@ -55,7 +55,7 @@ export function useOrgaos(
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: ['orgaos', filters],
+    queryKey: ['curso-filter', 'orgaos', filters],
     queryFn: () => fetchOrgaos(filters),
     enabled,
   })
@@ -66,7 +66,7 @@ export function useCargos(
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: ['cargos', filters],
+    queryKey: ['curso-filter', 'cargos', filters],
     queryFn: () => fetchCargos(filters),
     enabled,
   })
@@ -77,7 +77,7 @@ export function useDisciplinas(
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: ['disciplinas', filters],
+    queryKey: ['curso-filter', 'disciplinas', filters],
     queryFn: () => fetchDisciplinas(filters),
     enabled,
   })

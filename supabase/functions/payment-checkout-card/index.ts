@@ -1,7 +1,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
-import { createSupabaseFromRequest } from '../_shared/supabase.ts'
+import { createSupabaseFromRequest, createSupabaseAdmin } from '../_shared/supabase.ts'
 import { pagarmeRequest, buildSplitRules } from '../_shared/pagarme.ts'
+import { resolveReceiverIds, resolveProfessorId, applyCoupon, createEnrollment } from '../_shared/checkout.ts'
 
 interface CardCheckoutBody {
   customer_id: string
@@ -33,14 +34,17 @@ serve(async (req) => {
       return errorResponse('customer_id, amount, and card are required')
     }
 
+    // Admin client for DB writes (user JWT is blocked by RLS)
+    const admin = createSupabaseAdmin()
+
     // Resolve teacher receiver IDs for split
-    const receiverIds = await resolveReceiverIds(supabase, body.curso_id, body.pacote_id)
+    const receiverIds = await resolveReceiverIds(admin, body.curso_id, body.pacote_id)
     const splitRules = buildSplitRules(receiverIds)
 
     // Apply coupon discount if provided
     let finalAmount = body.amount
     if (body.cupom_codigo) {
-      finalAmount = await applyCoupon(supabase, body.cupom_codigo, body.amount)
+      finalAmount = await applyCoupon(admin, body.cupom_codigo, body.amount)
     }
 
     // Create order in Pagar.me
@@ -74,8 +78,8 @@ serve(async (req) => {
     })
 
     // Create movimentacao record
-    const professorId = await resolveProfessorId(supabase, body.curso_id)
-    await supabase.from('movimentacoes').insert({
+    const professorId = await resolveProfessorId(admin, body.curso_id)
+    await admin.from('movimentacoes').insert({
       pagarme_order_id: order.id,
       valor: finalAmount / 100,
       valor_curso: body.amount / 100,
@@ -89,7 +93,7 @@ serve(async (req) => {
 
     // If paid immediately, create enrollment
     if (order.status === 'paid') {
-      await createEnrollment(supabase, user.id, body.curso_id, body.pacote_id)
+      await createEnrollment(admin, user.id, body.curso_id, body.pacote_id)
     }
 
     return jsonResponse({ order_id: order.id, status: order.status })
@@ -98,120 +102,3 @@ serve(async (req) => {
     return errorResponse(err.message ?? 'Internal error', 500)
   }
 })
-
-async function resolveReceiverIds(
-  supabase: ReturnType<typeof createSupabaseFromRequest>,
-  cursoId?: string,
-  pacoteId?: string,
-): Promise<string[]> {
-  const ids: string[] = []
-
-  if (cursoId) {
-    const { data } = await supabase
-      .from('cursos')
-      .select('professor_id, professor:professor_profiles(pagarme_receiver_id)')
-      .eq('id', cursoId)
-      .single()
-    if (data?.professor?.pagarme_receiver_id) {
-      ids.push(data.professor.pagarme_receiver_id)
-    }
-  }
-
-  if (pacoteId) {
-    const { data } = await supabase
-      .from('pacote_cursos')
-      .select('curso:cursos(professor_id, professor:professor_profiles(pagarme_receiver_id))')
-      .eq('pacote_id', pacoteId)
-    if (data) {
-      for (const row of data) {
-        const rid = (row as any).curso?.professor?.pagarme_receiver_id
-        if (rid) ids.push(rid)
-      }
-    }
-  }
-
-  return ids
-}
-
-async function resolveProfessorId(
-  supabase: ReturnType<typeof createSupabaseFromRequest>,
-  cursoId?: string,
-): Promise<string | null> {
-  if (!cursoId) return null
-  const { data } = await supabase
-    .from('cursos')
-    .select('professor_id')
-    .eq('id', cursoId)
-    .single()
-  return data?.professor_id ?? null
-}
-
-async function applyCoupon(
-  supabase: ReturnType<typeof createSupabaseFromRequest>,
-  codigo: string,
-  amount: number,
-): Promise<number> {
-  const { data: cupom } = await supabase
-    .from('cupons')
-    .select('*')
-    .eq('codigo', codigo.toUpperCase())
-    .eq('is_active', true)
-    .single()
-
-  if (!cupom) return amount
-
-  // Check expiration
-  if (cupom.valid_until && new Date(cupom.valid_until) < new Date()) return amount
-
-  // Check max uses
-  if (cupom.max_uses && cupom.uses_count >= cupom.max_uses) return amount
-
-  // Apply discount (valor is in BRL, amount is in cents)
-  const discountCents = Math.round(cupom.valor * 100)
-  const final = Math.max(amount - discountCents, 0)
-
-  // Increment uses
-  await supabase
-    .from('cupons')
-    .update({ uses_count: (cupom.uses_count ?? 0) + 1 })
-    .eq('id', cupom.id)
-
-  return final
-}
-
-async function createEnrollment(
-  supabase: ReturnType<typeof createSupabaseFromRequest>,
-  userId: string,
-  cursoId?: string,
-  pacoteId?: string,
-) {
-  if (cursoId) {
-    await supabase.from('enrollments').upsert(
-      { user_id: userId, curso_id: cursoId },
-      { onConflict: 'user_id,curso_id' },
-    )
-  }
-
-  if (pacoteId) {
-    // Enroll in all courses of the package
-    const { data: cursos } = await supabase
-      .from('pacote_cursos')
-      .select('curso_id')
-      .eq('pacote_id', pacoteId)
-
-    if (cursos) {
-      for (const c of cursos) {
-        await supabase.from('enrollments').upsert(
-          { user_id: userId, curso_id: c.curso_id },
-          { onConflict: 'user_id,curso_id' },
-        )
-      }
-    }
-
-    // Create package access record
-    await supabase.from('package_access').upsert(
-      { user_id: userId, pacote_id: pacoteId },
-      { onConflict: 'pacote_id,user_id' },
-    )
-  }
-}

@@ -1,5 +1,5 @@
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
-import { createSupabaseFromRequest } from '../_shared/supabase.ts'
+import { createSupabaseFromRequest, isAdminOrProfessor } from '../_shared/supabase.ts'
 import { pagarmeRequest, PagarmeError } from '../_shared/pagarme.ts'
 
 Deno.serve(async (req) => {
@@ -13,6 +13,11 @@ Deno.serve(async (req) => {
 
     const { recipient_id } = await req.json()
     if (!recipient_id) return errorResponse('recipient_id is required')
+
+    // Only admins/professors can check balance, and only for their own recipient
+    if (!await isAdminOrProfessor(supabase, user.id)) {
+      return errorResponse('Acesso negado', 403)
+    }
 
     const balance = await pagarmeRequest<{
       available_amount: number

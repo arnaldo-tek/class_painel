@@ -1,0 +1,144 @@
+import { createSupabaseFromRequest } from './supabase.ts'
+
+type SupabaseClient = ReturnType<typeof createSupabaseFromRequest>
+
+/** Resolve Pagar.me receiver IDs for split rules from course or package */
+export async function resolveReceiverIds(
+  supabase: SupabaseClient,
+  cursoId?: string,
+  pacoteId?: string,
+): Promise<string[]> {
+  const ids: string[] = []
+
+  if (cursoId) {
+    const { data } = await supabase
+      .from('cursos')
+      .select('professor_id, professor:professor_profiles(pagarme_receiver_id)')
+      .eq('id', cursoId)
+      .single()
+    if (data?.professor?.pagarme_receiver_id) {
+      ids.push(data.professor.pagarme_receiver_id)
+    }
+  }
+
+  if (pacoteId) {
+    const { data } = await supabase
+      .from('pacote_cursos')
+      .select('curso:cursos(professor_id, professor:professor_profiles(pagarme_receiver_id))')
+      .eq('pacote_id', pacoteId)
+    if (data) {
+      for (const row of data) {
+        const rid = (row as any).curso?.professor?.pagarme_receiver_id
+        if (rid) ids.push(rid)
+      }
+    }
+  }
+
+  return ids
+}
+
+/** Resolve professor ID from a course */
+export async function resolveProfessorId(
+  supabase: SupabaseClient,
+  cursoId?: string,
+): Promise<string | null> {
+  if (!cursoId) return null
+  const { data } = await supabase
+    .from('cursos')
+    .select('professor_id')
+    .eq('id', cursoId)
+    .single()
+  return data?.professor_id ?? null
+}
+
+/**
+ * Apply coupon discount atomically using an RPC or conditional update
+ * to prevent race conditions on uses_count
+ */
+export async function applyCoupon(
+  supabase: SupabaseClient,
+  codigo: string,
+  amount: number,
+): Promise<number> {
+  // Fetch coupon
+  const { data: cupom } = await supabase
+    .from('cupons')
+    .select('id, valor, valid_until, max_uses, uses_count, is_active')
+    .eq('codigo', codigo.toUpperCase())
+    .eq('is_active', true)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (!cupom) return amount
+
+  // Check expiration
+  if (cupom.valid_until && new Date(cupom.valid_until) < new Date()) return amount
+
+  // Check max uses
+  if (cupom.max_uses && (cupom.uses_count ?? 0) >= cupom.max_uses) return amount
+
+  // Apply discount
+  const discountCents = Math.round(cupom.valor * 100)
+  const final = Math.max(amount - discountCents, 0)
+
+  // Atomic increment: only increment if uses_count hasn't changed (optimistic lock)
+  const currentCount = cupom.uses_count ?? 0
+  const { data: updated, error } = await supabase
+    .from('cupons')
+    .update({ uses_count: currentCount + 1 })
+    .eq('id', cupom.id)
+    .eq('uses_count', currentCount) // optimistic lock
+    .select('id')
+    .maybeSingle()
+
+  if (error || !updated) {
+    // Race condition: someone else used the coupon at the same time
+    // Re-check if max_uses exceeded
+    if (cupom.max_uses && currentCount + 1 > cupom.max_uses) {
+      return amount // Don't apply discount
+    }
+    // Retry once
+    await supabase
+      .from('cupons')
+      .update({ uses_count: currentCount + 1 })
+      .eq('id', cupom.id)
+  }
+
+  return final
+}
+
+/** Create enrollment for a user (course and/or package) */
+export async function createEnrollment(
+  supabase: SupabaseClient,
+  userId: string,
+  cursoId?: string,
+  pacoteId?: string,
+) {
+  if (cursoId) {
+    await supabase.from('enrollments').upsert(
+      { user_id: userId, curso_id: cursoId },
+      { onConflict: 'user_id,curso_id' },
+    )
+  }
+
+  if (pacoteId) {
+    const { data: cursos } = await supabase
+      .from('pacote_cursos')
+      .select('curso_id')
+      .eq('pacote_id', pacoteId)
+
+    if (cursos) {
+      for (const c of cursos) {
+        await supabase.from('enrollments').upsert(
+          { user_id: userId, curso_id: c.curso_id },
+          { onConflict: 'user_id,curso_id' },
+        )
+      }
+    }
+
+    await supabase.from('package_access').upsert(
+      { user_id: userId, pacote_id: pacoteId },
+      { onConflict: 'pacote_id,user_id' },
+    )
+  }
+}

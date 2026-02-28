@@ -1,5 +1,5 @@
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
-import { createSupabaseAdmin, createSupabaseFromRequest } from '../_shared/supabase.ts'
+import { createSupabaseAdmin, createSupabaseFromRequest, canAccessProfessorData } from '../_shared/supabase.ts'
 import { pagarmeRequest, PagarmeError } from '../_shared/pagarme.ts'
 
 interface RegisterRecipientBody {
@@ -46,6 +46,11 @@ Deno.serve(async (req) => {
     const body: RegisterRecipientBody = await req.json()
     if (!body.professor_id || !body.type || !body.document || !body.bank_account) {
       return errorResponse('professor_id, type, document, and bank_account are required')
+    }
+
+    // Verify caller is admin or the professor themselves
+    if (!await canAccessProfessorData(supabase, user.id, body.professor_id)) {
+      return errorResponse('Acesso negado', 403)
     }
 
     // Build Pagar.me recipient payload

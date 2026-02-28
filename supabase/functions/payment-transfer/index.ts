@@ -1,5 +1,5 @@
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
-import { createSupabaseAdmin, createSupabaseFromRequest } from '../_shared/supabase.ts'
+import { createSupabaseAdmin, createSupabaseFromRequest, hasRole } from '../_shared/supabase.ts'
 import { pagarmeRequest, PagarmeError } from '../_shared/pagarme.ts'
 
 Deno.serve(async (req) => {
@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
     const supabase = createSupabaseFromRequest(req)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return errorResponse('Unauthorized', 401)
+
+    // Only admins can initiate transfers
+    if (!await hasRole(supabase, user.id, 'admin')) {
+      return errorResponse('Apenas admins podem realizar transferências', 403)
+    }
 
     const { amount, recipient_id } = await req.json()
     if (!amount || !recipient_id) {

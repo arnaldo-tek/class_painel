@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { MessageCircle, Send } from 'lucide-react'
+import { MessageCircle, Send, User } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthContext } from '@/contexts/AuthContext'
@@ -18,20 +18,37 @@ export function ChatPage() {
       if (!user) return []
       const { data, error } = await supabase
         .from('chats')
-        .select('*, user_a_profile:profiles!chats_user_a_fkey(display_name, email), user_b_profile:profiles!chats_user_b_fkey(display_name, email)')
+        .select('*')
         .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
         .order('last_message_time', { ascending: false })
 
       if (error) throw error
-      return data ?? []
+      if (!data?.length) return []
+
+      // Buscar profiles dos outros usuarios
+      const otherIds = data.map((c: any) => c.user_a === user.id ? c.user_b : c.user_a)
+      const uniqueIds = [...new Set(otherIds)]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, email, photo_url, phone_number')
+        .in('id', uniqueIds)
+
+      const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]))
+
+      return data.map((c: any) => {
+        const otherId = c.user_a === user.id ? c.user_b : c.user_a
+        return { ...c, other_profile: profileMap.get(otherId) ?? null }
+      })
     },
     enabled: !!user,
   })
 
+  const selectedChat = chats?.find((c: any) => c.id === selectedChatId) as any
+
   return (
     <div className="flex h-[calc(100vh-7rem)] gap-4">
       {/* Chat list */}
-      <div className="w-72 shrink-0 overflow-y-auto rounded-lg border border-gray-200 bg-white">
+      <div className="w-80 shrink-0 overflow-y-auto rounded-lg border border-gray-200 bg-white">
         <div className="p-3 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Conversas</h2>
         </div>
@@ -42,25 +59,40 @@ export function ChatPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {chats.map((chat: any) => {
-              const other = chat.user_a === user?.id ? chat.user_b_profile : chat.user_a_profile
+              const other = chat.other_profile
+              const isUnread = !chat.message_seen && chat.last_message_sent_by !== user?.id
               return (
                 <button
                   key={chat.id}
                   onClick={() => setSelectedChatId(chat.id)}
                   className={cn(
-                    'w-full text-left px-3 py-3 hover:bg-gray-50 transition-colors',
+                    'w-full text-left px-3 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3',
                     selectedChatId === chat.id && 'bg-blue-50',
                   )}
                 >
-                  <p className="font-medium text-sm text-gray-900 truncate">
-                    {other?.display_name ?? other?.email ?? '—'}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
-                    {chat.last_message ?? 'Sem mensagens'}
-                  </p>
-                  {!chat.message_seen && chat.last_message_sent_by !== user?.id && (
-                    <span className="inline-block w-2 h-2 rounded-full bg-blue-600 mt-1" />
+                  {other?.photo_url ? (
+                    <img src={other.photo_url} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-blue-500" />
+                    </div>
                   )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-sm text-gray-900 truncate">
+                        {other?.display_name || other?.email || '—'}
+                      </p>
+                      {isUnread && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
+                      )}
+                    </div>
+                    {other?.display_name && other?.email && (
+                      <p className="text-xs text-gray-500 truncate">{other.email}</p>
+                    )}
+                    <p className="text-xs text-gray-400 truncate mt-0.5">
+                      {chat.last_message ?? 'Sem mensagens'}
+                    </p>
+                  </div>
                 </button>
               )
             })}
@@ -70,7 +102,7 @@ export function ChatPage() {
 
       {/* Messages */}
       {selectedChatId ? (
-        <ChatMessages chatId={selectedChatId} />
+        <ChatMessages chatId={selectedChatId} other={selectedChat?.other_profile} />
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <EmptyState icon={<MessageCircle className="h-12 w-12" />} title="Selecione uma conversa" />
@@ -80,7 +112,7 @@ export function ChatPage() {
   )
 }
 
-function ChatMessages({ chatId }: { chatId: string }) {
+function ChatMessages({ chatId, other }: { chatId: string; other: any }) {
   const { user } = useAuthContext()
   const [text, setText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -144,6 +176,28 @@ function ChatMessages({ chatId }: { chatId: string }) {
 
   return (
     <div className="flex flex-1 flex-col rounded-lg border border-gray-200 bg-white">
+      {/* Header with user info */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        {other?.photo_url ? (
+          <img src={other.photo_url} alt="" className="w-9 h-9 rounded-full object-cover" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+            <User className="h-4 w-4 text-blue-500" />
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="font-semibold text-sm text-gray-900 truncate">
+            {other?.display_name || other?.email || 'Usuário'}
+          </p>
+          {other?.email && (
+            <p className="text-xs text-gray-500 truncate">{other.email}</p>
+          )}
+          {other?.phone_number && (
+            <p className="text-xs text-gray-400 truncate">{other.phone_number}</p>
+          )}
+        </div>
+      </div>
+
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {(messages ?? []).map((msg) => {
@@ -166,17 +220,22 @@ function ChatMessages({ chatId }: { chatId: string }) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-100 p-3 flex gap-2">
-        <Input
+      <div className="border-t border-gray-200 px-4 py-3 flex items-center gap-3">
+        <input
+          type="text"
           placeholder="Digite uma mensagem..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
-          className="flex-1"
+          className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
-        <Button onClick={handleSend} disabled={!text.trim() || sendMutation.isPending}>
-          <Send className="h-4 w-4" />
-        </Button>
+        <button
+          onClick={handleSend}
+          disabled={!text.trim() || sendMutation.isPending}
+          className="h-11 w-11 shrink-0 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700 disabled:opacity-40 transition-colors"
+        >
+          <Send className="h-5 w-5" />
+        </button>
       </div>
     </div>
   )

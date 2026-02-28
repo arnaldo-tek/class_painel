@@ -66,9 +66,20 @@ export async function fetchOrgaos(filters: OrgaosFilters) {
     .order('nome')
 
   if (filters.categoriaId) query = query.eq('categoria_id', filters.categoriaId)
-  if (filters.estadoId) query = query.eq('estado_id', filters.estadoId)
-  if (filters.municipioId) query = query.eq('municipio_id', filters.municipioId)
-  if (filters.escolaridadeId) query = query.eq('escolaridade_id', filters.escolaridadeId)
+
+  // Build combined OR for estado + municipio to avoid multiple .or() calls
+  const orParts: string[] = []
+  if (filters.estadoId) {
+    orParts.push(`estado_id.eq.${filters.estadoId}`, 'estado_id.is.null')
+  }
+  if (orParts.length > 0) {
+    query = query.or(orParts.join(','))
+  }
+
+  // Municipio: show matching OR null (state/federal-level orgaos)
+  if (filters.municipioId) {
+    query = query.or(`municipio_id.eq.${filters.municipioId},municipio_id.is.null`)
+  }
 
   const { data, error } = await query
   if (error) throw error

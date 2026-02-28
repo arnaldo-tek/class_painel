@@ -3,13 +3,15 @@ import { FolderOpen, Plus, Trash2, X, FileText } from 'lucide-react'
 import { useDocumentos, useCreateDocumento, useDeleteDocumento } from './content-hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { FileUpload } from '@/components/ui/file-upload'
 import { EmptyState } from '@/components/ui/empty-state'
+import { uploadFile } from '@/lib/storage'
 
 export function DocumentosPage() {
   const { data: docs, isLoading } = useDocumentos()
   const [showForm, setShowForm] = useState(false)
   const [nome, setNome] = useState('')
-  const [pdf, setPdf] = useState('')
+  const [pdf, setPdf] = useState<string | null>(null)
   const [error, setError] = useState('')
   const createMutation = useCreateDocumento()
   const deleteMutation = useDeleteDocumento()
@@ -17,9 +19,10 @@ export function DocumentosPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!nome.trim()) { setError('Nome é obrigatório'); return }
+    if (!pdf) { setError('PDF é obrigatório'); return }
     try {
-      await createMutation.mutateAsync({ nome: nome.trim(), pdf: pdf.trim() || null })
-      setNome(''); setPdf(''); setShowForm(false)
+      await createMutation.mutateAsync({ nome: nome.trim(), pdf })
+      setNome(''); setPdf(null); setShowForm(false); setError('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro')
     }
@@ -34,12 +37,21 @@ export function DocumentosPage() {
 
       {showForm && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
-          <div className="flex items-center justify-between"><h3 className="font-medium">Novo Documento</h3><button onClick={() => setShowForm(false)} className="text-gray-400"><X className="h-4 w-4" /></button></div>
-          <form onSubmit={handleSubmit} className="flex flex-wrap gap-3 items-end">
-            <div className="flex-1 min-w-[200px]"><Input placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} required /></div>
-            <div className="flex-1 min-w-[200px]"><Input placeholder="URL do PDF" value={pdf} onChange={(e) => setPdf(e.target.value)} /></div>
-            <Button type="submit" size="sm" disabled={createMutation.isPending}>Criar</Button>
-            {error && <p className="w-full text-sm text-red-600">{error}</p>}
+          <div className="flex items-center justify-between"><h3 className="font-medium">Novo Documento</h3><button onClick={() => { setShowForm(false); setError('') }} className="text-gray-400"><X className="h-4 w-4" /></button></div>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <Input placeholder="Nome do documento" value={nome} onChange={(e) => setNome(e.target.value)} required />
+            <FileUpload
+              label="Arquivo PDF"
+              accept="application/pdf"
+              type="pdf"
+              value={pdf}
+              onChange={(url) => setPdf(url)}
+              onUpload={(file) => uploadFile('documentos', file)}
+            />
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" disabled={createMutation.isPending}>Criar</Button>
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
           </form>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { handleCors, jsonResponse, errorResponse } from '../_shared/cors.ts'
-import { createSupabaseFromRequest } from '../_shared/supabase.ts'
+import { createSupabaseFromRequest, isAdminOrProfessor } from '../_shared/supabase.ts'
 import { pagarmeRequest, PagarmeError } from '../_shared/pagarme.ts'
 
 Deno.serve(async (req) => {
@@ -10,6 +10,11 @@ Deno.serve(async (req) => {
     const supabase = createSupabaseFromRequest(req)
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) return errorResponse('Unauthorized', 401)
+
+    // Only admins and professors can list orders
+    if (!await isAdminOrProfessor(supabase, user.id)) {
+      return errorResponse('Acesso negado', 403)
+    }
 
     const body = await req.json()
     const { page = 1, size = 20, status, created_since, created_until, customer_id } = body

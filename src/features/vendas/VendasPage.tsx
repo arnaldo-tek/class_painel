@@ -10,7 +10,7 @@ import {
 } from './hooks'
 import { fetchVendasParaExportar } from './api'
 import { exportVendasToExcel } from './export'
-import type { VendasFilters, PagarmeOrder } from './api'
+import type { VendasFilters, PagarmeOrder, MovimentacaoVenda } from './api'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -236,7 +236,7 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
   async function handleExport() {
     setExporting(true)
     try {
-      const vendas = await fetchVendasParaExportar(dateFrom, dateTo)
+      const vendas = await fetchVendasParaExportar(dateFrom, dateTo, professorId)
       exportVendasToExcel(vendas, `vendas_${dateFrom}_${dateTo}`)
     } finally {
       setExporting(false)
@@ -290,38 +290,57 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
             <TableHeader>
               <TableRow>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Itens</TableHead>
+                <TableHead>{professorId ? 'Curso' : 'Itens'}</TableHead>
                 <TableHead>Valor</TableHead>
-                <TableHead>Pagamento</TableHead>
+                <TableHead>{professorId ? '' : 'Pagamento'}</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Data</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.vendas.map((v: PagarmeOrder) => {
-                const badge = statusBadge[v.status] ?? statusBadge.pending
-                const charge = v.charges?.[0]
-                const paymentMethod = charge?.payment_method
-                  ? (paymentMethodLabels[charge.payment_method] ?? charge.payment_method)
-                  : '—'
-                const itemsDesc = v.items?.map((i) => i.description).join(', ') || '—'
-
-                return (
-                  <TableRow key={v.id}>
-                    <TableCell>
-                      <p className="font-medium">{v.customer?.name ?? '—'}</p>
-                      <p className="text-xs text-gray-500">{v.customer?.email ?? ''}</p>
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={itemsDesc}>{itemsDesc}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(v.amount / 100)}</TableCell>
-                    <TableCell className="text-gray-500">{paymentMethod}</TableCell>
-                    <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
-                    <TableCell className="text-gray-500">
-                      {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+              {professorId
+                ? (data.vendas as MovimentacaoVenda[]).map((v) => {
+                    const badge = statusBadge[v.status] ?? statusBadge.pending
+                    return (
+                      <TableRow key={v.id}>
+                        <TableCell>
+                          <p className="font-medium">{v.nome_cliente ?? '—'}</p>
+                          <p className="text-xs text-gray-500">{v.email_cliente ?? ''}</p>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate">{v.nome_curso ?? '—'}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(v.valor)}</TableCell>
+                        <TableCell />
+                        <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
+                        <TableCell className="text-gray-500">
+                          {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                : (data.vendas as PagarmeOrder[]).map((v) => {
+                    const badge = statusBadge[v.status] ?? statusBadge.pending
+                    const charge = v.charges?.[0]
+                    const paymentMethod = charge?.payment_method
+                      ? (paymentMethodLabels[charge.payment_method] ?? charge.payment_method)
+                      : '—'
+                    const itemsDesc = v.items?.map((i) => i.description).join(', ') || '—'
+                    return (
+                      <TableRow key={v.id}>
+                        <TableCell>
+                          <p className="font-medium">{v.customer?.name ?? '—'}</p>
+                          <p className="text-xs text-gray-500">{v.customer?.email ?? ''}</p>
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={itemsDesc}>{itemsDesc}</TableCell>
+                        <TableCell className="font-medium">{formatCurrency(v.amount / 100)}</TableCell>
+                        <TableCell className="text-gray-500">{paymentMethod}</TableCell>
+                        <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
+                        <TableCell className="text-gray-500">
+                          {v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+              }
             </TableBody>
           </Table>
           <Pagination

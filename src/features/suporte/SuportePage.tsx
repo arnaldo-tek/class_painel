@@ -1,13 +1,17 @@
-import { useState } from 'react'
-import { LifeBuoy } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { LifeBuoy, Send } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchChamados, updateChamadoStatus } from './api'
+import { fetchChamados, updateChamadoStatus, fetchChamadoMensagens, sendChamadoMensagem } from './api'
+import type { Chamado } from './api'
 import { Select } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
 } from '@/components/ui/table'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Drawer } from '@/components/ui/drawer'
+import { supabase } from '@/lib/supabase'
 
 const STATUS_OPTIONS = [
   { value: 'aberto', label: 'Aberto' },
@@ -31,6 +35,7 @@ export function SuporteProfessoresPage() {
 
 function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: string }) {
   const [statusFilter, setStatusFilter] = useState('')
+  const [selectedChamado, setSelectedChamado] = useState<Chamado | null>(null)
   const qc = useQueryClient()
 
   const { data: chamados, isLoading } = useQuery({
@@ -73,7 +78,7 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
             {chamados.map((c) => {
               const badge = statusBadge[c.status ?? 'aberto'] ?? statusBadge.aberto
               return (
-                <TableRow key={c.id}>
+                <TableRow key={c.id} className="cursor-pointer hover:bg-blue-50" onClick={() => setSelectedChamado(c)}>
                   <TableCell>
                     <p className="font-medium">{c.profiles?.display_name ?? '—'}</p>
                     <p className="text-xs text-gray-500">{c.profiles?.email}</p>
@@ -85,7 +90,7 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
                   <TableCell className="text-gray-500">
                     {c.created_at ? new Date(c.created_at).toLocaleDateString('pt-BR') : '—'}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Select
                       options={STATUS_OPTIONS}
                       value={c.status ?? 'aberto'}
@@ -98,6 +103,126 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
           </TableBody>
         </Table>
       )}
+
+      <Drawer
+        open={!!selectedChamado}
+        onClose={() => setSelectedChamado(null)}
+        title={`Chamado - ${selectedChamado?.profiles?.display_name ?? 'Usuário'}`}
+        width="max-w-lg"
+      >
+        {selectedChamado && <ChamadoChat chamado={selectedChamado} />}
+      </Drawer>
+    </div>
+  )
+}
+
+function ChamadoChat({ chamado }: { chamado: Chamado }) {
+  const [msg, setMsg] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const qc = useQueryClient()
+
+  const { data: mensagens, isLoading } = useQuery({
+    queryKey: ['chamado-mensagens', chamado.id],
+    queryFn: () => fetchChamadoMensagens(chamado.id),
+  })
+
+  const sendMutation = useMutation({
+    mutationFn: () => sendChamadoMensagem(chamado.id, msg.trim()),
+    onSuccess: () => {
+      setMsg('')
+      qc.invalidateQueries({ queryKey: ['chamado-mensagens', chamado.id] })
+    },
+  })
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`chamado-msgs:${chamado.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chamado_mensagens',
+          filter: `chamado_id=eq.${chamado.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ['chamado-mensagens', chamado.id] })
+        },
+      )
+      .subscribe()
+
+    return () => { channel.unsubscribe() }
+  }, [chamado.id, qc])
+
+  // Auto-scroll
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [mensagens])
+
+  const badge = statusBadge[chamado.status ?? 'aberto'] ?? statusBadge.aberto
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-120px)]">
+      {/* Chamado info */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 mb-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500">
+            {chamado.created_at ? new Date(chamado.created_at).toLocaleString('pt-BR') : ''}
+          </span>
+          <Badge variant={badge.variant}>{badge.label}</Badge>
+        </div>
+        <p className="text-sm text-gray-900">{chamado.descricao}</p>
+        {chamado.imagem && (
+          <a href={chamado.imagem} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline">Ver imagem anexada</a>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+        {isLoading ? (
+          <p className="text-sm text-gray-400 text-center">Carregando mensagens...</p>
+        ) : !mensagens?.length ? (
+          <p className="text-sm text-gray-400 text-center py-8">Nenhuma mensagem ainda. Envie a primeira resposta.</p>
+        ) : (
+          mensagens.map((m) => {
+            const isAdmin = m.user_id !== chamado.user_id
+            return (
+              <div key={m.id} className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] rounded-lg px-3 py-2 ${isAdmin ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                  <p className={`text-xs font-medium mb-1 ${isAdmin ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {isAdmin ? 'Suporte' : (chamado.profiles?.display_name ?? 'Usuário')}
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">{m.mensagem}</p>
+                  <p className={`text-xs mt-1 ${isAdmin ? 'text-blue-200' : 'text-gray-400'}`}>
+                    {m.created_at ? new Date(m.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </p>
+                </div>
+              </div>
+            )
+          })
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2 border-t border-gray-200 pt-3">
+        <input
+          type="text"
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && msg.trim()) { e.preventDefault(); sendMutation.mutate() } }}
+          placeholder="Digite sua resposta..."
+          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <Button
+          onClick={() => sendMutation.mutate()}
+          disabled={!msg.trim() || sendMutation.isPending}
+          size="sm"
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }
