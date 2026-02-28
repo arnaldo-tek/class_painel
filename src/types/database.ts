@@ -12,33 +12,43 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      active_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: string | null
+          id: string
+          invalidated_at: string | null
+          session_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          invalidated_at?: string | null
+          session_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: string | null
+          id?: string
+          invalidated_at?: string | null
+          session_token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_permissions: {
         Row: {
           created_at: string | null
@@ -149,6 +159,7 @@ export type Database = {
           sort_order: number | null
           texto_aula: string | null
           titulo: string
+          video_url: string | null
         }
         Insert: {
           autor_id?: string | null
@@ -166,6 +177,7 @@ export type Database = {
           sort_order?: number | null
           texto_aula?: string | null
           titulo: string
+          video_url?: string | null
         }
         Update: {
           autor_id?: string | null
@@ -183,6 +195,7 @@ export type Database = {
           sort_order?: number | null
           texto_aula?: string | null
           titulo?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -429,6 +442,38 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["categoria_tipo"]
         }
         Relationships: []
+      }
+      chamado_mensagens: {
+        Row: {
+          chamado_id: string
+          created_at: string | null
+          id: string
+          mensagem: string
+          user_id: string
+        }
+        Insert: {
+          chamado_id: string
+          created_at?: string | null
+          id?: string
+          mensagem: string
+          user_id: string
+        }
+        Update: {
+          chamado_id?: string
+          created_at?: string | null
+          id?: string
+          mensagem?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chamado_mensagens_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chamados: {
         Row: {
@@ -752,6 +797,7 @@ export type Database = {
         Row: {
           codigo: string
           created_at: string | null
+          deleted_at: string | null
           id: string
           is_active: boolean | null
           max_uses: number | null
@@ -762,6 +808,7 @@ export type Database = {
         Insert: {
           codigo: string
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           is_active?: boolean | null
           max_uses?: number | null
@@ -772,6 +819,7 @@ export type Database = {
         Update: {
           codigo?: string
           created_at?: string | null
+          deleted_at?: string | null
           id?: string
           is_active?: boolean | null
           max_uses?: number | null
@@ -1581,6 +1629,61 @@ export type Database = {
             columns: ["curso_id"]
             isOneToOne: false
             referencedRelation: "cursos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movimentacao_splits: {
+        Row: {
+          created_at: string | null
+          curso_id: string | null
+          id: string
+          movimentacao_id: string
+          professor_id: string
+          valor_bruto: number
+          valor_plataforma: number
+          valor_professor: number
+        }
+        Insert: {
+          created_at?: string | null
+          curso_id?: string | null
+          id?: string
+          movimentacao_id: string
+          professor_id: string
+          valor_bruto: number
+          valor_plataforma: number
+          valor_professor: number
+        }
+        Update: {
+          created_at?: string | null
+          curso_id?: string | null
+          id?: string
+          movimentacao_id?: string
+          professor_id?: string
+          valor_bruto?: number
+          valor_plataforma?: number
+          valor_professor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_splits_curso_id_fkey"
+            columns: ["curso_id"]
+            isOneToOne: false
+            referencedRelation: "cursos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_splits_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_splits_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "professor_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2638,6 +2741,54 @@ export type Database = {
           },
         ]
       }
+      solicitacoes_reembolso: {
+        Row: {
+          created_at: string | null
+          detalhes: string | null
+          id: string
+          motivo: string
+          movimentacao_id: string
+          resolved_at: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          detalhes?: string | null
+          id?: string
+          motivo: string
+          movimentacao_id: string
+          resolved_at?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          detalhes?: string | null
+          id?: string
+          motivo?: string
+          movimentacao_id?: string
+          resolved_at?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_reembolso_movimentacao_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_reembolso_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subcategorias: {
         Row: {
           categoria_id: string | null
@@ -2712,6 +2863,35 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "subpastas_leis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sugestoes: {
+        Row: {
+          created_at: string | null
+          id: string
+          texto: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          texto: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          texto?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sugestoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2949,6 +3129,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_professor_owner: { Args: { prof_id: string }; Returns: boolean }
+      register_session: {
+        Args: { p_device_info?: string; p_session_token: string }
+        Returns: Json
+      }
     }
     Enums: {
       approval_status: "em_analise" | "aprovado" | "reprovado"
@@ -3080,9 +3264,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       approval_status: ["em_analise", "aprovado", "reprovado"],
