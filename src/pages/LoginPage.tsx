@@ -14,8 +14,7 @@ function useLoginImage() {
       const { data } = await supabase
         .from('publicidade_abertura')
         .select('imagem')
-        .in('plataforma', ['Painel Adm', 'Painel Professor'])
-        .limit(1)
+        .eq('plataforma', 'Painel')
         .maybeSingle()
       return data?.imagem ?? null
     },

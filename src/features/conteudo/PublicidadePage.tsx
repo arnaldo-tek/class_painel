@@ -294,8 +294,7 @@ const PLATAFORMAS = [
   { key: 'App 1', label: 'App 1' },
   { key: 'App 2', label: 'App 2' },
   { key: 'App 3', label: 'App 3' },
-  { key: 'Painel Adm', label: 'Painel Adm' },
-  { key: 'Painel Professor', label: 'Painel Professor' },
+  { key: 'Painel', label: 'Painel' },
 ]
 
 function TabAbertura() {
