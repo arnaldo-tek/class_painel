@@ -29,8 +29,11 @@ import { AudioCursosPage } from '@/features/conteudo/AudioCursosPage'
 import { DocumentosPage } from '@/features/conteudo/DocumentosPage'
 import { PublicidadePage } from '@/features/conteudo/PublicidadePage'
 import { TutoriaisPage } from '@/features/conteudo/TutoriaisPage'
+import { TutoriaisProfessorPage } from '@/features/conteudo/TutoriaisProfessorPage'
+import { MeusChamadosPage } from '@/features/suporte/MeusChamadosPage'
 import { ComunidadesPage } from '@/features/comunidades/ComunidadesPage'
 import { SuporteAlunosPage, SuporteProfessoresPage } from '@/features/suporte/SuportePage'
+import { useAuth } from '@/hooks/useAuth'
 import { ChatPage } from '@/features/chat/ChatPage'
 import { FaqPage } from '@/features/faq/FaqPage'
 import { MeuPerfilPage } from '@/features/perfil/MeuPerfilPage'
@@ -99,7 +102,12 @@ const editaisRoute = createRoute({ getParentRoute: () => protectedRoute, path: '
 const audioCursosRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/audio-cursos', component: AudioCursosPage })
 const documentosRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/documentos', component: DocumentosPage })
 const publicidadeRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/publicidade', component: PublicidadePage })
-const tutoriaisRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/tutoriais', component: TutoriaisPage })
+function TutoriaisRouter() {
+  const { isProfessor, isAdmin } = useAuth()
+  if (isProfessor && !isAdmin) return <TutoriaisProfessorPage />
+  return <TutoriaisPage />
+}
+const tutoriaisRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/tutoriais', component: TutoriaisRouter })
 
 // FAQ
 const faqRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/faq', component: FaqPage })
@@ -108,6 +116,7 @@ const faqRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/faq
 const comunidadesRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/comunidades', component: ComunidadesPage })
 
 // Suporte e Chat
+const meusChamadosRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/suporte/meus-chamados', component: MeusChamadosPage })
 const suporteAlunosRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/suporte/alunos', component: SuporteAlunosPage })
 const suporteProfessoresRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/suporte/professores', component: SuporteProfessoresPage })
 const chatRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/chat', component: ChatPage })
@@ -137,7 +146,7 @@ const routeTree = rootRoute.addChildren([
     noticiasRoute, editaisRoute, audioCursosRoute, documentosRoute, publicidadeRoute, tutoriaisRoute,
     faqRoute,
     comunidadesRoute,
-    suporteAlunosRoute, suporteProfessoresRoute, chatRoute, meuPerfilRoute, cardsRoute,
+    meusChamadosRoute, suporteAlunosRoute, suporteProfessoresRoute, chatRoute, meuPerfilRoute, cardsRoute,
   ]),
 ])
 

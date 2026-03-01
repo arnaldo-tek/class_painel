@@ -204,7 +204,7 @@ export const navigation: NavItem[] = [
     label: 'Tutoriais',
     path: '/tutoriais',
     icon: 'PlayCircle',
-    roles: ['admin', 'colaborador'],
+    roles: ['admin', 'professor', 'colaborador'],
     permission: 'manage_tutorials',
   },
   {
@@ -223,15 +223,23 @@ export const navigation: NavItem[] = [
     roles: ['admin', 'professor', 'colaborador'],
     children: [
       {
+        label: 'Meus Chamados',
+        path: '/suporte/meus-chamados',
+        icon: 'MessageSquare',
+        roles: ['professor'],
+      },
+      {
         label: 'Chamados Alunos',
         path: '/suporte/alunos',
         icon: 'MessageSquare',
+        roles: ['admin', 'colaborador'],
         permission: 'manage_student_support',
       },
       {
         label: 'Chamados Professores',
         path: '/suporte/professores',
         icon: 'MessageSquare',
+        roles: ['admin', 'colaborador'],
         permission: 'manage_professor_support',
       },
     ],
