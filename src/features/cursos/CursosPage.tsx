@@ -25,6 +25,7 @@ function getCursoStatus(curso: Curso) {
 export function CursosPage() {
   const { isAdmin, isProfessor, user } = useAuthContext()
   const { data: professorProfile } = useProfessorProfile(isProfessor ? user?.id : undefined)
+  const professorApproved = isAdmin || !isProfessor || (professorProfile?.approval_status === 'aprovado' && !professorProfile?.is_blocked)
   const [filters, setFilters] = useState<CursosFilters>({ page: 1 })
   const [searchInput, setSearchInput] = useState('')
 
@@ -59,13 +60,25 @@ export function CursosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Cursos</h1>
-        <Link to="/cursos/novo">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Curso
-          </Button>
-        </Link>
+        {professorApproved && (
+          <Link to="/cursos/novo">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Curso
+            </Button>
+          </Link>
+        )}
       </div>
+
+      {isProfessor && !isAdmin && !professorApproved && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-800">
+            {professorProfile?.approval_status === 'reprovado'
+              ? 'Seu cadastro foi reprovado. Entre em contato com o suporte para mais informações.'
+              : 'Seu cadastro está em análise. Você poderá criar cursos após a aprovação.'}
+          </p>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">

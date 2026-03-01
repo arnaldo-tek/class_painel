@@ -273,6 +273,25 @@ export function CursoFormPage() {
     }
   }
 
+  const professorApproved = isAdmin || !isProfessor || (professorProfile?.approval_status === 'aprovado' && !professorProfile?.is_blocked)
+
+  if (!isEditing && !professorApproved) {
+    return (
+      <div className="mx-auto max-w-2xl py-12">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-6 py-5 text-center">
+          <p className="text-sm text-amber-800">
+            {professorProfile?.approval_status === 'reprovado'
+              ? 'Seu cadastro foi reprovado. Entre em contato com o suporte para mais informações.'
+              : 'Seu cadastro está em análise. Você poderá criar cursos após a aprovação.'}
+          </p>
+          <Link to="/cursos" className="mt-3 inline-block text-sm font-medium text-blue-600 hover:underline">
+            Voltar para cursos
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   if (isEditing && loadingCurso) {
     return (
       <div className="flex justify-center py-12">

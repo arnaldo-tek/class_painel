@@ -11,8 +11,9 @@ import { uploadFile } from '@/lib/storage'
 import { EmptyState } from '@/components/ui/empty-state'
 
 export function CardsPage() {
-  const { user } = useAuthContext()
+  const { user, isAdmin, isProfessor } = useAuthContext()
   const { data: profile } = useProfessorProfile(user?.id)
+  const professorApproved = isAdmin || !isProfessor || (profile?.approval_status === 'aprovado' && !profile?.is_blocked)
   const { data: cards, isLoading } = useCards(profile?.id)
   const [showForm, setShowForm] = useState(false)
   const [editingCard, setEditingCard] = useState<PostProfessor | null>(null)
@@ -39,11 +40,23 @@ export function CardsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Cards</h1>
-        <Button onClick={() => { setEditingCard(null); setShowForm(true) }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Criar novo card
-        </Button>
+        {professorApproved && (
+          <Button onClick={() => { setEditingCard(null); setShowForm(true) }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Criar novo card
+          </Button>
+        )}
       </div>
+
+      {isProfessor && !isAdmin && !professorApproved && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-800">
+            {profile?.approval_status === 'reprovado'
+              ? 'Seu cadastro foi reprovado. Entre em contato com o suporte para mais informações.'
+              : 'Seu cadastro está em análise. Você poderá criar cards após a aprovação.'}
+          </p>
+        </div>
+      )}
 
       {showForm && profile && (
         <CardForm
