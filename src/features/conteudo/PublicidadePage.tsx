@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Megaphone, Plus, Trash2, Image, Monitor, Users, Headphones } from 'lucide-react'
+import { Megaphone, Plus, Trash2, Pencil, Image, Monitor, Users, Headphones } from 'lucide-react'
 import {
   useBanners, useCreateBanner, useUpdateBanner, useDeleteBanner,
   usePublicidadeAbertura, useCreatePublicidadeAbertura, useUpdatePublicidadeAbertura, useDeletePublicidadeAbertura,
@@ -64,11 +64,64 @@ interface ImageCardProps {
   imagem: string | null
   link?: string | null
   isActive: boolean
+  showLink?: boolean
+  bucket: string
+  folder: string
   onToggle: (id: string, active: boolean) => void
   onDelete: (id: string) => void
+  onUpdate: (id: string, data: { imagem?: string; link?: string | null }) => void
+  isUpdating?: boolean
 }
 
-function ImageCard({ id, imagem, link, isActive, onToggle, onDelete }: ImageCardProps) {
+function ImageCard({ id, imagem, link, isActive, showLink, bucket, folder, onToggle, onDelete, onUpdate, isUpdating }: ImageCardProps) {
+  const [editing, setEditing] = useState(false)
+  const [editLink, setEditLink] = useState(link ?? '')
+  const [editImagem, setEditImagem] = useState<string | null>(imagem)
+  const [editError, setEditError] = useState('')
+
+  function handleSave() {
+    const trimmedLink = editLink.trim()
+    if (showLink && trimmedLink && !trimmedLink.startsWith('https://') && !trimmedLink.startsWith('http://')) {
+      setEditError('O link deve começar com https:// ou http://'); return
+    }
+    setEditError('')
+    const updates: { imagem?: string; link?: string | null } = {}
+    if (editImagem && editImagem !== imagem) updates.imagem = editImagem
+    if (showLink) updates.link = trimmedLink || null
+    onUpdate(id, updates)
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+        <FileUpload
+          label="Imagem"
+          accept="image/*"
+          type="image"
+          value={editImagem}
+          onChange={setEditImagem}
+          onUpload={(file) => uploadFile(bucket, file, folder)}
+        />
+        {showLink && (
+          <div>
+            <label className="text-sm font-medium text-gray-700">Link de redirecionamento</label>
+            <Input value={editLink} onChange={(e) => setEditLink(e.target.value)} placeholder="https://..." />
+          </div>
+        )}
+        {editError && <p className="text-sm text-red-600">{editError}</p>}
+        <div className="flex gap-2">
+          <Button size="sm" onClick={handleSave} disabled={isUpdating}>
+            {isUpdating ? 'Salvando...' : 'Salvar'}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => { setEditing(false); setEditLink(link ?? ''); setEditImagem(imagem); setEditError('') }}>
+            Cancelar
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
       {imagem ? (
@@ -85,6 +138,13 @@ function ImageCard({ id, imagem, link, isActive, onToggle, onDelete }: ImageCard
             {isActive ? 'Ativo' : 'Inativo'}
           </Badge>
           <div className="flex gap-1">
+            <button
+              onClick={() => setEditing(true)}
+              className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-600"
+              title="Editar"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
             <button
               onClick={() => onToggle(id, !isActive)}
               className="rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
@@ -123,9 +183,13 @@ function AddImageForm({ bucket, folder, showLink, onSubmit, onClose, isPending }
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!imagem) { setError('Imagem é obrigatória'); return }
+    const trimmedLink = link.trim()
+    if (showLink && trimmedLink && !trimmedLink.startsWith('https://') && !trimmedLink.startsWith('http://')) {
+      setError('O link deve começar com https:// ou http://'); return
+    }
     setError('')
     try {
-      await onSubmit({ imagem, link: showLink ? (link.trim() || null) : null })
+      await onSubmit({ imagem, link: showLink ? (trimmedLink || null) : null })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar')
@@ -209,8 +273,13 @@ function TabBanners() {
               imagem={b.imagem}
               link={b.redirecionamento}
               isActive={b.is_active ?? true}
+              showLink
+              bucket="publicidade"
+              folder="banners"
               onToggle={(id, active) => updateMutation.mutate({ id, is_active: active })}
               onDelete={(id) => deleteMutation.mutate(id)}
+              onUpdate={(id, data) => updateMutation.mutate({ id, imagem: data.imagem, redirecionamento: data.link })}
+              isUpdating={updateMutation.isPending}
             />
           ))}
         </div>
@@ -364,8 +433,13 @@ function TabAreaAluno() {
               imagem={b.imagem}
               link={b.link}
               isActive={b.is_active ?? true}
+              showLink
+              bucket="publicidade"
+              folder="area-aluno"
               onToggle={(id, active) => updateMutation.mutate({ id, is_active: active })}
               onDelete={(id) => deleteMutation.mutate(id)}
+              onUpdate={(id, data) => updateMutation.mutate({ id, imagem: data.imagem, link: data.link })}
+              isUpdating={updateMutation.isPending}
             />
           ))}
         </div>
@@ -414,8 +488,13 @@ function TabAudioCurso() {
               imagem={b.imagem}
               link={b.link}
               isActive={b.is_active ?? true}
+              showLink
+              bucket="publicidade"
+              folder="audio-curso"
               onToggle={(id, active) => updateMutation.mutate({ id, is_active: active })}
               onDelete={(id) => deleteMutation.mutate(id)}
+              onUpdate={(id, data) => updateMutation.mutate({ id, imagem: data.imagem, link: data.link })}
+              isUpdating={updateMutation.isPending}
             />
           ))}
         </div>
