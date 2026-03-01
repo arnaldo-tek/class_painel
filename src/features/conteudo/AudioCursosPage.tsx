@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FileUpload } from '@/components/ui/file-upload'
 
 const TABS = [
   { tipo: 1, label: 'Pacotes' },
@@ -622,7 +623,7 @@ function QuestoesTab({ leiId }: { leiId: string }) {
         <Plus className="mr-1 h-4 w-4" /> Nova Questão
       </Button>
 
-      <Modal open={modalOpen} onClose={closeModal} title={editing ? 'Editar Questão' : 'Nova Questão'} maxWidth="max-w-lg">
+      <Modal open={modalOpen} onClose={closeModal} title={editing ? 'Editar Questão' : 'Nova Questão'} maxWidth="max-w-3xl">
         <QuestaoForm leiId={leiId} editing={editing} onClose={closeModal} />
       </Modal>
 
@@ -758,9 +759,22 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
         />
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-3">
         <label className="text-sm font-medium text-gray-700">Vídeo explicativo (opcional)</label>
-        <Input placeholder="URL do vídeo" value={video} onChange={(e) => setVideo(e.target.value)} />
+        <Input placeholder="URL do vídeo (YouTube, Vimeo, etc.)" value={video} onChange={(e) => setVideo(e.target.value)} />
+        <div className="relative flex items-center">
+          <div className="flex-grow border-t border-gray-200" />
+          <span className="mx-3 text-xs text-gray-400">ou</span>
+          <div className="flex-grow border-t border-gray-200" />
+        </div>
+        <FileUpload
+          label="Upload de Vídeo"
+          accept="video/*"
+          type="video"
+          value={video && !video.startsWith('http') ? video : null}
+          onChange={(url) => setVideo(url ?? '')}
+          onUpload={(file) => uploadFile('audiocursos', file, 'videos')}
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

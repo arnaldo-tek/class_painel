@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 export async function fetchCategoriaComFiltros(id: string) {
   const { data, error } = await supabase
     .from('categorias')
-    .select('id, nome, filtro_estado, filtro_cidade, filtro_orgao, filtro_escolaridade, filtro_nivel, filtro_cargo, filtro_disciplina')
+    .select('id, nome, filtro_estado, filtro_cidade, filtro_orgao, filtro_escolaridade, filtro_nivel, filtro_cargo, filtro_disciplina, filtro_orgao_editais_noticias')
     .eq('id', id)
     .single()
 

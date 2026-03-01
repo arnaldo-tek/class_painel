@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useNoticias, useCreateNoticia, useUpdateNoticia, useDeleteNoticia } from './noticias-hooks'
 import { useCategorias } from '@/features/categorias/hooks'
-import { useCategoria as useCategoriaFiltros, useEstados, useMunicipios } from '@/features/cursos/filtros-hooks'
+import { useCategoria as useCategoriaFiltros, useEstados, useMunicipios, useOrgaos } from '@/features/cursos/filtros-hooks'
 import { uploadFile } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -118,6 +118,7 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
   const [categoriaId, setCategoriaId] = useState(editing?.categoria_id ?? '')
   const [estadoId, setEstadoId] = useState(editing?.estado_id ?? '')
   const [municipioId, setMunicipioId] = useState(editing?.municipio_id ?? '')
+  const [orgaoId, setOrgaoId] = useState(editing?.orgao ?? '')
   const [imagem, setImagem] = useState<string | null>(editing?.imagem ?? null)
   const [error, setError] = useState('')
 
@@ -128,9 +129,11 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
   const { data: categoriaFiltros } = useCategoriaFiltros(categoriaId || undefined)
   const showEstado = categoriaFiltros?.filtro_estado ?? false
   const showCidade = categoriaFiltros?.filtro_cidade ?? false
+  const showOrgao = categoriaFiltros?.filtro_orgao_editais_noticias ?? false
 
   const { data: estados } = useEstados(showEstado)
   const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
+  const { data: orgaos } = useOrgaos({ categoriaId: categoriaId || undefined, estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
 
   const createMutation = useCreateNoticia()
   const updateMutation = useUpdateNoticia()
@@ -140,11 +143,13 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
     setCategoriaId(value)
     setEstadoId('')
     setMunicipioId('')
+    setOrgaoId('')
   }
 
   function handleEstadoChange(value: string) {
     setEstadoId(value)
     setMunicipioId('')
+    setOrgaoId('')
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -157,6 +162,7 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
         categoria_id: categoriaId || null,
         estado_id: showEstado && estadoId ? estadoId : null,
         municipio_id: showCidade && municipioId ? municipioId : null,
+        orgao: showOrgao && orgaoId ? orgaoId : null,
         imagem,
       }
       if (editing) {
@@ -237,6 +243,19 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
             options={(municipios ?? []).map((m: any) => ({ value: m.id, label: m.nome }))}
             value={municipioId}
             onChange={(e) => setMunicipioId(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Órgão */}
+      {showOrgao && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Órgão</label>
+          <Select
+            placeholder="Selecionar órgão"
+            options={(orgaos ?? []).map((o: any) => ({ value: o.nome, label: o.nome }))}
+            value={orgaoId}
+            onChange={(e) => setOrgaoId(e.target.value)}
           />
         </div>
       )}
