@@ -6,20 +6,12 @@ import { useTutoriais, useCreateTutorial, useUpdateTutorial, useDeleteTutorial }
 import { uploadFile } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { Modal } from '@/components/ui/modal'
 import { FileUpload } from '@/components/ui/file-upload'
 import { EmptyState } from '@/components/ui/empty-state'
 import type { Tutorial } from './content-api'
 
 type TipoTutorial = 'Video' | 'PDF'
-type Destinatario = 'professor' | 'aluno' | 'todos'
-
-const DESTINATARIO_OPTIONS = [
-  { value: 'professor', label: 'Professores' },
-  { value: 'aluno', label: 'Alunos' },
-  { value: 'todos', label: 'Todos' },
-]
 
 export function TutoriaisPage() {
   const { data: tutoriais, isLoading } = useTutoriais()
@@ -253,7 +245,6 @@ function TutorialForm({ editing, defaultTipo, onClose }: { editing?: Tutorial; d
   const [descricao, setDescricao] = useState(editing?.descricao ?? '')
   const [video, setVideo] = useState<string | null>(editing?.video ?? null)
   const [pdf, setPdf] = useState<string | null>(editing?.pdf ?? null)
-  const [destinatario, setDestinatario] = useState<Destinatario>((editing?.destinatario as Destinatario) ?? 'professor')
   const [error, setError] = useState('')
 
   const createMutation = useCreateTutorial()
@@ -272,7 +263,6 @@ function TutorialForm({ editing, defaultTipo, onClose }: { editing?: Tutorial; d
         tipo_tutorial: tipo,
         video: tipo === 'Video' ? video : null,
         pdf: tipo === 'PDF' ? pdf : null,
-        destinatario,
       }
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, ...payload })
@@ -361,17 +351,6 @@ function TutorialForm({ editing, defaultTipo, onClose }: { editing?: Tutorial; d
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
         />
-      </div>
-
-      {/* Destinatário */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Destinatário</label>
-        <Select
-          options={DESTINATARIO_OPTIONS}
-          value={destinatario}
-          onChange={(e) => setDestinatario(e.target.value as Destinatario)}
-        />
-        <p className="text-xs text-gray-400">Define quem poderá ver este tutorial.</p>
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

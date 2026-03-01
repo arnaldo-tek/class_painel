@@ -14,7 +14,6 @@ function useTutoriaisProfessor() {
       const { data, error } = await supabase
         .from('tutoriais')
         .select('*')
-        .in('destinatario', ['professor', 'todos'])
         .order('created_at', { ascending: false })
       if (error) throw error
       return data ?? []
