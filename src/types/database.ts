@@ -3001,6 +3001,7 @@ export type Database = {
         Row: {
           created_at: string | null
           descricao: string | null
+          destinatario: string | null
           id: string
           pdf: string | null
           tipo_tutorial: string | null
@@ -3010,6 +3011,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           descricao?: string | null
+          destinatario?: string | null
           id?: string
           pdf?: string | null
           tipo_tutorial?: string | null
@@ -3019,6 +3021,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           descricao?: string | null
+          destinatario?: string | null
           id?: string
           pdf?: string | null
           tipo_tutorial?: string | null

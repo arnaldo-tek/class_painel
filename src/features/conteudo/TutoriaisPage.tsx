@@ -253,7 +253,7 @@ function TutorialForm({ editing, defaultTipo, onClose }: { editing?: Tutorial; d
   const [descricao, setDescricao] = useState(editing?.descricao ?? '')
   const [video, setVideo] = useState<string | null>(editing?.video ?? null)
   const [pdf, setPdf] = useState<string | null>(editing?.pdf ?? null)
-  const [destinatario, setDestinatario] = useState<Destinatario>(((editing as any)?.destinatario as Destinatario) ?? 'professor')
+  const [destinatario, setDestinatario] = useState<Destinatario>((editing?.destinatario as Destinatario) ?? 'professor')
   const [error, setError] = useState('')
 
   const createMutation = useCreateTutorial()

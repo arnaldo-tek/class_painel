@@ -300,7 +300,7 @@ export async function fetchTutoriais() {
   return data ?? []
 }
 
-export async function createTutorial(t: { titulo?: string | null; descricao?: string | null; video?: string | null; pdf?: string | null; tipo_tutorial?: string | null }) {
+export async function createTutorial(t: { titulo?: string | null; descricao?: string | null; video?: string | null; pdf?: string | null; tipo_tutorial?: string | null; destinatario?: string | null }) {
   const { data, error } = await supabase.from('tutoriais').insert(t).select().single()
   if (error) throw error
   return data
