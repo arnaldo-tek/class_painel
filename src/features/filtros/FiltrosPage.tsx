@@ -250,6 +250,7 @@ function OrgaosPanel() {
   const [estadoId, setEstadoId] = useState('')
   const [municipioId, setMunicipioId] = useState('')
   const [escolaridadeId, setEscolaridadeId] = useState('')
+  const [filterCategoriaId, setFilterCategoriaId] = useState('')
   const [error, setError] = useState('')
 
   const { data: categoriasData } = useCategorias()
@@ -272,6 +273,12 @@ function OrgaosPanel() {
   const esferaNome = esferasData?.items.find((e) => e.id === esferaId)?.nome ?? ''
   const showEstado = esferaNome === 'Estadual' || esferaNome === 'Municipal'
   const showCidade = esferaNome === 'Municipal' && !!estadoId
+
+  // Filter displayed orgãos by category
+  const filteredItems = (data?.items ?? []).filter((item) => {
+    if (!filterCategoriaId) return true
+    return item.categoria_id === filterCategoriaId
+  })
 
   function handleEsferaChange(value: string) {
     setEsferaId(value)
@@ -352,12 +359,23 @@ function OrgaosPanel() {
         </div>
       )}
 
-      {isLoading ? <Loading /> : !data?.items.length ? (
+      {/* Filter by category */}
+      <div className="max-w-xs">
+        <Select
+          label="Filtrar por categoria"
+          placeholder="Todas as categorias"
+          options={categoriaOpts}
+          value={filterCategoriaId}
+          onChange={(e) => setFilterCategoriaId(e.target.value)}
+        />
+      </div>
+
+      {isLoading ? <Loading /> : !filteredItems.length ? (
         <EmptyState icon={<SlidersHorizontal className="h-12 w-12" />} title="Nenhum orgao encontrado" />
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-gray-500">{data.total} orgaos</p>
-          {data.items.map((item) => (
+          <p className="text-sm text-gray-500">{filteredItems.length} orgaos{filterCategoriaId ? ' nesta categoria' : ''}</p>
+          {filteredItems.map((item) => (
             <div key={item.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="flex-1">
                 <span className="font-medium text-gray-900">{item.nome}</span>

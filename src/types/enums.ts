@@ -18,6 +18,9 @@ export const ADMIN_PERMISSIONS = [
   'manage_documents',
   'manage_advertising',
   'manage_audiocourses',
+  'manage_communities',
+  'manage_coupons',
+  'manage_faq',
 ] as const
 
 export type AdminPermission = (typeof ADMIN_PERMISSIONS)[number]

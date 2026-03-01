@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-import { LifeBuoy, Send } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { LifeBuoy, Send, Search } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchChamados, updateChamadoStatus, fetchChamadoMensagens, sendChamadoMensagem } from './api'
 import type { Chamado } from './api'
@@ -35,6 +35,7 @@ export function SuporteProfessoresPage() {
 
 function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: string }) {
   const [statusFilter, setStatusFilter] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [selectedChamado, setSelectedChamado] = useState<Chamado | null>(null)
   const qc = useQueryClient()
 
@@ -42,6 +43,16 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
     queryKey: ['chamados', tipo, statusFilter],
     queryFn: () => fetchChamados(tipo, statusFilter || undefined),
   })
+
+  const filteredChamados = useMemo(() => {
+    if (!chamados) return []
+    if (!searchQuery.trim()) return chamados
+    const q = searchQuery.toLowerCase()
+    return chamados.filter((c) =>
+      c.profiles?.display_name?.toLowerCase().includes(q) ||
+      c.profiles?.email?.toLowerCase().includes(q)
+    )
+  }, [chamados, searchQuery])
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => updateChamadoStatus(id, status),
@@ -52,17 +63,29 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-gray-900">{titulo}</h1>
 
-      <Select
-        placeholder="Todos os status"
-        options={STATUS_OPTIONS}
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-      />
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder={`Buscar ${tipo} por nome ou email...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        <Select
+          placeholder="Todos os status"
+          options={STATUS_OPTIONS}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        />
+      </div>
 
       {isLoading ? (
         <div className="flex justify-center py-12"><div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" /></div>
-      ) : !chamados?.length ? (
-        <EmptyState icon={<LifeBuoy className="h-12 w-12" />} title="Nenhum chamado" />
+      ) : !filteredChamados.length ? (
+        <EmptyState icon={<LifeBuoy className="h-12 w-12" />} title={searchQuery ? 'Nenhum chamado encontrado' : 'Nenhum chamado'} />
       ) : (
         <Table>
           <TableHeader>
@@ -75,7 +98,7 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
             </TableRow>
           </TableHeader>
           <TableBody>
-            {chamados.map((c) => {
+            {filteredChamados.map((c) => {
               const badge = statusBadge[c.status ?? 'aberto'] ?? statusBadge.aberto
               return (
                 <TableRow key={c.id} className="cursor-pointer hover:bg-blue-50" onClick={() => setSelectedChamado(c)}>

@@ -136,12 +136,21 @@ function PacoteForm({
 
       <div className="space-y-1">
         <label className="text-sm font-medium text-gray-700">Nome do Pacote</label>
-        <Input placeholder="Nome do pacote" value={nome} onChange={(e) => setNome(e.target.value)} required />
+        <Input placeholder="Nome do pacote" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={150} required />
+        <p className="text-xs text-gray-400">{nome.length}/150 caracteres</p>
       </div>
 
       <div className="space-y-1">
         <label className="text-sm font-medium text-gray-700">Descrição</label>
-        <Input placeholder="Descrição" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+        <textarea
+          placeholder="Descrição"
+          value={descricao}
+          onChange={(e) => setDescricao(e.target.value)}
+          maxLength={150}
+          rows={3}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <p className="text-xs text-gray-400">{descricao.length}/150 caracteres</p>
       </div>
 
       <div className="space-y-1">
@@ -172,14 +181,14 @@ function PacoteCard({ pacote, onEdit }: { pacote: PacoteWithRelations; onEdit: (
   const availableCursos = (allCursos ?? []).filter((c) => !linkedCursoIds.has(c.id))
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3 overflow-hidden">
       {pacote.imagem && (
         <img src={pacote.imagem} alt="" className="h-32 w-full rounded object-cover" />
       )}
       <div className="flex items-start justify-between">
         <div>
-          <h3 className="font-semibold text-gray-900">{pacote.nome}</h3>
-          {pacote.descricao && <p className="text-sm text-gray-500 mt-1">{pacote.descricao}</p>}
+          <h3 className="font-semibold text-gray-900 line-clamp-3 break-words">{pacote.nome}</h3>
+          {pacote.descricao && <p className="text-sm text-gray-500 mt-1 line-clamp-2 break-words">{pacote.descricao}</p>}
         </div>
         <div className="flex gap-1">
           <button onClick={onEdit} className="rounded p-1.5 text-gray-400 hover:bg-gray-100"><Pencil className="h-4 w-4" /></button>

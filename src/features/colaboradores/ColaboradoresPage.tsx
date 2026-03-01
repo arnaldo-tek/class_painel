@@ -26,6 +26,9 @@ const PERMISSION_LABELS: Record<string, string> = {
   manage_documents: 'Documentos',
   manage_advertising: 'Publicidade',
   manage_audiocourses: 'Audio Cursos',
+  manage_communities: 'Comunidades',
+  manage_coupons: 'Cupons',
+  manage_faq: 'FAQ',
 }
 
 function maskCPF(value: string) {

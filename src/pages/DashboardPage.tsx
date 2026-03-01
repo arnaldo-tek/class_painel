@@ -1,19 +1,40 @@
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useProfessorStats } from '@/features/dashboard/hooks'
 import { useAdminStats } from '@/features/dashboard/hooks'
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
 import {
   BookOpen, Users, TrendingUp, Star, GraduationCap,
 } from 'lucide-react'
 
+function useProfileName(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['profile-name', userId],
+    queryFn: async () => {
+      if (!userId) return null
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', userId)
+        .single()
+      return data?.display_name ?? null
+    },
+    enabled: !!userId,
+  })
+}
+
 export function DashboardPage() {
   const { user, isAdmin, isProfessor } = useAuthContext()
+  const { data: profileName } = useProfileName(user?.id)
+
+  const displayName = profileName || user?.user_metadata?.display_name || user?.email
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">
-          Bem-vindo, {user?.user_metadata?.display_name ?? user?.email}
+          Bem-vindo(a), {displayName}
         </p>
       </div>
 

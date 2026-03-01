@@ -122,7 +122,7 @@ function AddImageForm({ bucket, folder, showLink, onSubmit, onClose, isPending }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!imagem) { setError('Imagem e obrigatoria'); return }
+    if (!imagem) { setError('Imagem é obrigatória'); return }
     setError('')
     try {
       await onSubmit({ imagem, link: showLink ? (link.trim() || null) : null })
@@ -266,7 +266,7 @@ function TabAbertura() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-500">Imagens exibidas nas telas iniciais de login. Uma imagem por plataforma.</p>
+      <p className="text-sm text-gray-500">Imagens exibidas como slides ao abrir o app ou painel. Aparecem na tela de splash/onboarding antes do login. Uma imagem por plataforma.</p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {PLATAFORMAS.map(({ key, label }) => {
@@ -336,7 +336,7 @@ function TabAreaAluno() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">Imagens exibidas na area do aluno (dashboard).</p>
+        <p className="text-sm text-gray-500">Banners exibidos na tela inicial (home) do app do aluno. Podem conter link de redirecionamento.</p>
         <Button size="sm" onClick={() => setShowForm(true)}><Plus className="mr-1.5 h-4 w-4" />Nova Imagem</Button>
       </div>
 

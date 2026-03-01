@@ -542,12 +542,16 @@ function AudiosTab({ leiId }: { leiId: string }) {
   const createMutation = useCreateAudioLei()
   const deleteMutation = useDeleteAudioLei()
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   async function handleUpload(file: File) {
     setUploading(true)
+    setUploadError('')
     try {
       const url = await uploadFile('audiocursos', file, 'audios')
       await createMutation.mutateAsync({ lei_id: leiId, audio_url: url, titulo: file.name.replace(/\.\w+$/, '') })
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Erro ao enviar áudio. Tente novamente.')
     } finally {
       setUploading(false)
     }
@@ -566,6 +570,10 @@ function AudiosTab({ leiId }: { leiId: string }) {
           onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = '' }}
         />
       </label>
+
+      {uploadError && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{uploadError}</p>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-gray-400">Carregando...</p>
@@ -664,6 +672,7 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
     return 0
   })
   const [video, setVideo] = useState(editing?.video ?? '')
+  const [respostaEscrita, setRespostaEscrita] = useState(editing?.resposta_escrita ?? '')
   const [error, setError] = useState('')
 
   const createMutation = useCreateQuestaoLei()
@@ -689,6 +698,7 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
         alternativas: filledAlts,
         resposta,
         video: video.trim() || null,
+        resposta_escrita: respostaEscrita.trim() || null,
       }
       if (editing) {
         await updateMutation.mutateAsync({ id: editing.id, ...payload })
@@ -714,21 +724,38 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
         />
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <label className="text-sm font-medium text-gray-700">Alternativas (marque a correta)</label>
         {alternativas.map((alt, i) => (
-          <div key={i} className="flex items-center gap-2">
+          <div key={i} className="flex items-start gap-2">
             <input
               type="radio"
               name="resposta"
               checked={respostaIdx === i}
               onChange={() => setRespostaIdx(i)}
-              className="h-4 w-4 text-blue-600"
+              className="h-4 w-4 text-blue-600 mt-2"
             />
-            <span className="text-sm text-gray-500 w-5">{String.fromCharCode(65 + i)})</span>
-            <Input placeholder={`Alternativa ${String.fromCharCode(65 + i)}`} value={alt} onChange={(e) => updateAlt(i, e.target.value)} className="flex-1" />
+            <span className="text-sm text-gray-500 w-5 mt-2">{String.fromCharCode(65 + i)})</span>
+            <textarea
+              placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
+              value={alt}
+              onChange={(e) => updateAlt(i, e.target.value)}
+              rows={2}
+              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
           </div>
         ))}
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-700">Resposta escrita (opcional)</label>
+        <textarea
+          placeholder="Resposta discursiva / explicação da questão"
+          value={respostaEscrita}
+          onChange={(e) => setRespostaEscrita(e.target.value)}
+          rows={3}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
       </div>
 
       <div className="space-y-1">

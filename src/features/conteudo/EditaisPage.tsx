@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { FileText, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useEditais, useCreateEdital, useUpdateEdital, useDeleteEdital } from './noticias-hooks'
 import { useCategorias } from '@/features/categorias/hooks'
+import { useCategoria as useCategoriaFiltros, useEstados, useMunicipios } from '@/features/cursos/filtros-hooks'
 import { uploadFile } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -116,6 +117,8 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
   const [resumo, setResumo] = useState(editing?.resumo ?? '')
   const [descricao, setDescricao] = useState(editing?.descricao ?? '')
   const [categoriaId, setCategoriaId] = useState(editing?.categoria_id ?? '')
+  const [estadoId, setEstadoId] = useState(editing?.estado_id ?? '')
+  const [municipioId, setMunicipioId] = useState(editing?.municipio_id ?? '')
   const [imagem, setImagem] = useState<string | null>(editing?.imagem ?? null)
   const [pdf, setPdf] = useState<string | null>(editing?.pdf ?? null)
   const [error, setError] = useState('')
@@ -123,9 +126,28 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
   const { data: categoriasData } = useCategorias('edital')
   const categorias = categoriasData?.categorias ?? []
 
+  // Cascading filters based on category flags
+  const { data: categoriaFiltros } = useCategoriaFiltros(categoriaId || undefined)
+  const showEstado = categoriaFiltros?.filtro_estado ?? false
+  const showCidade = categoriaFiltros?.filtro_cidade ?? false
+
+  const { data: estados } = useEstados(showEstado)
+  const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
+
   const createMutation = useCreateEdital()
   const updateMutation = useUpdateEdital()
   const isSaving = createMutation.isPending || updateMutation.isPending
+
+  function handleCategoriaChange(value: string) {
+    setCategoriaId(value)
+    setEstadoId('')
+    setMunicipioId('')
+  }
+
+  function handleEstadoChange(value: string) {
+    setEstadoId(value)
+    setMunicipioId('')
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -136,6 +158,8 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
         resumo: resumo.trim() || null,
         descricao: descricao.trim() || null,
         categoria_id: categoriaId || null,
+        estado_id: showEstado && estadoId ? estadoId : null,
+        municipio_id: showCidade && municipioId ? municipioId : null,
         imagem,
         pdf,
       }
@@ -214,9 +238,35 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
           placeholder="Selecionar categoria"
           options={(categorias as any[]).map((c: any) => ({ value: c.id, label: c.nome }))}
           value={categoriaId}
-          onChange={(e) => setCategoriaId(e.target.value)}
+          onChange={(e) => handleCategoriaChange(e.target.value)}
         />
       </div>
+
+      {/* Filtros cascata - Estado */}
+      {showEstado && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Estado</label>
+          <Select
+            placeholder="Selecionar estado"
+            options={(estados ?? []).map((e: any) => ({ value: e.id, label: e.nome }))}
+            value={estadoId}
+            onChange={(e) => handleEstadoChange(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Cidade */}
+      {showCidade && estadoId && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Cidade</label>
+          <Select
+            placeholder="Selecionar cidade"
+            options={(municipios ?? []).map((m: any) => ({ value: m.id, label: m.nome }))}
+            value={municipioId}
+            onChange={(e) => setMunicipioId(e.target.value)}
+          />
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
