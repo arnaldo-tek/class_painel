@@ -2648,6 +2648,7 @@ export type Database = {
           id: string
           pergunta: string
           resposta: string
+          resposta_escrita: string | null
           sort_order: number | null
           video: string | null
         }
@@ -2657,6 +2658,7 @@ export type Database = {
           id?: string
           pergunta: string
           resposta: string
+          resposta_escrita?: string | null
           sort_order?: number | null
           video?: string | null
         }
@@ -2666,6 +2668,7 @@ export type Database = {
           id?: string
           pergunta?: string
           resposta?: string
+          resposta_escrita?: string | null
           sort_order?: number | null
           video?: string | null
         }

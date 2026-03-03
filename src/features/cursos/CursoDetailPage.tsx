@@ -1509,6 +1509,7 @@ function QuestaoForm({
     return idx >= 0 ? idx : null
   })
   const [video, setVideo] = useState(existing?.video ?? '')
+  const [respostaEscrita, setRespostaEscrita] = useState(existing?.resposta_escrita ?? '')
   const [error, setError] = useState('')
 
   function handleAlternativaChange(idx: number, value: string) {
@@ -1545,6 +1546,7 @@ function QuestaoForm({
         alternativas: filledAlts,
         resposta: alternativas[respostaIdx].trim(),
         video: video.trim() || null,
+        resposta_escrita: respostaEscrita.trim() || null,
       }
 
       if (existing) {
@@ -1607,6 +1609,17 @@ function QuestaoForm({
             + Adicionar alternativa
           </button>
         )}
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-700">Resposta escrita (opcional)</label>
+        <textarea
+          placeholder="Resposta discursiva / explicação da questão"
+          value={respostaEscrita}
+          onChange={(e) => setRespostaEscrita(e.target.value)}
+          rows={3}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
       </div>
 
       <div className="space-y-3">
