@@ -210,20 +210,47 @@ function TabFotosDescricao({ profile }: { profile: Record<string, unknown> }) {
 // ─── Tab Dados Bancários ─────────────────────────────────────────────────────
 
 function TabDadosBancarios({ profile }: { profile: Record<string, unknown> }) {
+  const updateMutation = useUpdateProfessorProfile()
+  const [form, setForm] = useState({
+    banco: (profile.banco as string) ?? '',
+    agencia: (profile.agencia as string) ?? '',
+    digito_agencia: (profile.digito_agencia as string) ?? '',
+    conta: (profile.conta as string) ?? '',
+    digito_conta: (profile.digito_conta as string) ?? '',
+    chave_pix: (profile.chave_pix as string) ?? '',
+  })
+  const [success, setSuccess] = useState(false)
+
+  function handleChange(field: string, value: string) {
+    setForm((f) => ({ ...f, [field]: value }))
+    setSuccess(false)
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    await updateMutation.mutateAsync({ id: profile.id as string, ...form })
+    setSuccess(true)
+  }
+
   return (
-    <div className="space-y-6 rounded-lg border border-gray-200 bg-white p-6">
-      <p className="text-sm text-gray-500">
-        Os dados bancários são apenas para consulta. Para alterações, entre em contato com o suporte.
-      </p>
+    <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 bg-white p-6">
       <div className="grid gap-4 sm:grid-cols-2">
-        <ReadonlyField label="Banco" value={profile.banco as string} />
-        <ReadonlyField label="Agência" value={profile.agencia as string} />
-        <ReadonlyField label="Dígito Agência" value={profile.digito_agencia as string} />
-        <ReadonlyField label="Conta" value={profile.conta as string} />
-        <ReadonlyField label="Dígito Conta" value={profile.digito_conta as string} />
-        <ReadonlyField label="Chave PIX" value={profile.chave_pix as string} />
+        <Field label="Banco" value={form.banco} onChange={(v) => handleChange('banco', v)} />
+        <Field label="Agência" value={form.agencia} onChange={(v) => handleChange('agencia', v)} />
+        <Field label="Dígito Agência" value={form.digito_agencia} onChange={(v) => handleChange('digito_agencia', v)} />
+        <Field label="Conta" value={form.conta} onChange={(v) => handleChange('conta', v)} />
+        <Field label="Dígito Conta" value={form.digito_conta} onChange={(v) => handleChange('digito_conta', v)} />
+        <Field label="Chave PIX" value={form.chave_pix} onChange={(v) => handleChange('chave_pix', v)} />
       </div>
-    </div>
+
+      <div className="flex items-center gap-3">
+        <Button type="submit" disabled={updateMutation.isPending}>
+          {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
+        </Button>
+        {success && <span className="text-sm text-emerald-600">Salvo com sucesso!</span>}
+        {updateMutation.isError && <span className="text-sm text-red-600">Erro ao salvar.</span>}
+      </div>
+    </form>
   )
 }
 

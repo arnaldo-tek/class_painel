@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchCursos, fetchCurso, createCurso, updateCurso, encerrarCurso, togglePublicarCurso,
-  fetchProfessores, fetchCategoriasCurso,
+  fetchProfessores, fetchCategoriasCurso, fetchCursoEnrollments,
   type CursosFilters,
 } from './api'
 
@@ -31,6 +31,14 @@ export function useCategoriasCurso() {
   return useQuery({
     queryKey: ['categorias-curso'],
     queryFn: fetchCategoriasCurso,
+  })
+}
+
+export function useCursoEnrollments(cursoId: string | undefined) {
+  return useQuery({
+    queryKey: ['curso-enrollments', cursoId],
+    queryFn: () => fetchCursoEnrollments(cursoId!),
+    enabled: !!cursoId,
   })
 }
 

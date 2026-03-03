@@ -14,6 +14,7 @@ import {
 } from './filtros-hooks'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useProfessorProfile } from '@/hooks/useProfile'
+import { useSetting } from '@/features/configuracoes/hooks'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -30,6 +31,8 @@ export function CursoFormPage() {
   const { data: professores } = useProfessores()
   const { data: categorias } = useCategoriasCurso()
   const { data: professorProfile } = useProfessorProfile(isProfessor ? user?.id : undefined)
+  const { data: markupSetting } = useSetting('markup_percentage')
+  const defaultMarkup = markupSetting ?? '30'
 
   const createMutation = useCreateCurso()
   const updateMutation = useUpdateCurso()
@@ -41,7 +44,7 @@ export function CursoFormPage() {
     professor_id: '',
     categoria_id: '',
     video_aula_apresentacao: '',
-    taxa_superclasse: '25',
+    taxa_superclasse: '',
     is_publicado: false,
     is_degustacao: false,
     imagem: '' as string | null,
@@ -118,7 +121,7 @@ export function CursoFormPage() {
         video_aula_apresentacao: existingCurso.video_aula_apresentacao ?? '',
         taxa_superclasse: existingCurso.taxa_superclasse
           ? String(existingCurso.taxa_superclasse)
-          : '25',
+          : defaultMarkup,
         is_publicado: existingCurso.is_publicado ?? false,
         is_degustacao: existingCurso.is_degustacao ?? false,
         imagem: existingCurso.imagem ?? null,
@@ -249,7 +252,7 @@ export function CursoFormPage() {
       professor_id: form.professor_id,
       categoria_id: form.categoria_id || null,
       video_aula_apresentacao: form.video_aula_apresentacao.trim() || null,
-      taxa_superclasse: parseFloat(form.taxa_superclasse) || 25,
+      taxa_superclasse: parseFloat(form.taxa_superclasse || defaultMarkup) || 30,
       is_publicado: form.is_publicado,
       is_degustacao: form.is_degustacao,
       imagem: form.imagem || null,
@@ -359,29 +362,45 @@ export function CursoFormPage() {
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            id="preco"
-            label="Preço (R$)"
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.preco}
-            onChange={(e) => handleChange('preco', e.target.value)}
-            placeholder="0.00"
-          />
-
-          {isAdmin && (
+        <div className="space-y-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              id="taxa_superclasse"
-              label="Taxa plataforma (%)"
+              id="preco"
+              label="Preço do professor (R$)"
               type="number"
               step="0.01"
               min="0"
-              max="100"
-              value={form.taxa_superclasse}
-              onChange={(e) => handleChange('taxa_superclasse', e.target.value)}
+              value={form.preco}
+              onChange={(e) => handleChange('preco', e.target.value)}
+              placeholder="0.00"
             />
+
+            {isAdmin && (
+              <Input
+                id="taxa_superclasse"
+                label="Taxa plataforma (%)"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={form.taxa_superclasse}
+                onChange={(e) => handleChange('taxa_superclasse', e.target.value)}
+              />
+            )}
+          </div>
+
+          {form.preco && parseFloat(form.preco) > 0 && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+              <p className="text-sm text-blue-800">
+                Preço final para o aluno:{' '}
+                <strong>
+                  R$ {(parseFloat(form.preco) * (1 + (parseFloat(form.taxa_superclasse || defaultMarkup) || 30) / 100)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </strong>
+                <span className="ml-2 text-xs text-blue-600">
+                  (margem de {form.taxa_superclasse || defaultMarkup}%)
+                </span>
+              </p>
+            </div>
           )}
         </div>
 

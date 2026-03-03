@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Plus, Pencil, Trash2, X, Image as ImageIcon } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Image as ImageIcon, Video } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useProfessorProfile } from '@/hooks/useProfile'
 import { useCards, useCreateCard, useUpdateCard, useDeleteCard } from './hooks'
@@ -126,6 +126,19 @@ function CardItem({ card, onEdit }: { card: PostProfessor; onEdit: () => void })
   )
 }
 
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src)
+      resolve(video.duration)
+    }
+    video.onerror = () => reject(new Error('Não foi possível ler o vídeo'))
+    video.src = URL.createObjectURL(file)
+  })
+}
+
 function CardForm({
   professorId, card, onClose,
 }: {
@@ -133,9 +146,14 @@ function CardForm({
 }) {
   const createMutation = useCreateCard()
   const updateMutation = useUpdateCard()
+  const MAX_VIDEO_SECONDS = 120
+
+  const initialMediaType = card?.video ? 'video' : 'imagem'
+  const [mediaType, setMediaType] = useState<'imagem' | 'video'>(initialMediaType)
   const [form, setForm] = useState({
     descricao: card?.descricao ?? '',
     imagem: card?.imagem ?? '',
+    video: card?.video ?? '',
   })
   const [error, setError] = useState('')
 
@@ -143,21 +161,27 @@ function CardForm({
     setForm((f) => ({ ...f, [field]: value ?? '' }))
   }
 
+  function handleMediaTypeChange(type: 'imagem' | 'video') {
+    setMediaType(type)
+    if (type === 'imagem') {
+      setForm((f) => ({ ...f, video: '' }))
+    } else {
+      setForm((f) => ({ ...f, imagem: '' }))
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     try {
+      const payload = {
+        descricao: form.descricao || null,
+        imagem: mediaType === 'imagem' ? (form.imagem || null) : null,
+        video: mediaType === 'video' ? (form.video || null) : null,
+      }
       if (card) {
-        await updateMutation.mutateAsync({
-          id: card.id,
-          descricao: form.descricao || null,
-          imagem: form.imagem || null,
-        })
+        await updateMutation.mutateAsync({ id: card.id, ...payload })
       } else {
-        await createMutation.mutateAsync({
-          professor_id: professorId,
-          descricao: form.descricao || null,
-          imagem: form.imagem || null,
-        })
+        await createMutation.mutateAsync({ professor_id: professorId, ...payload })
       }
       onClose()
     } catch (err) {
@@ -165,8 +189,17 @@ function CardForm({
     }
   }
 
-  async function handleUpload(file: File) {
+  async function handleUploadImage(file: File) {
     return uploadFile('professores', file, 'cards')
+  }
+
+  async function handleUploadVideo(file: File) {
+    // Validate duration client-side
+    const duration = await getVideoDuration(file)
+    if (duration > MAX_VIDEO_SECONDS) {
+      throw new Error(`O vídeo deve ter no máximo 2 minutos. Duração: ${Math.ceil(duration)}s`)
+    }
+    return uploadFile('professores', file, 'cards-videos')
   }
 
   return (
@@ -189,14 +222,56 @@ function CardForm({
         />
       </div>
 
-      <FileUpload
-        label="Imagem"
-        accept="image/*"
-        value={form.imagem || null}
-        onChange={(url) => handleChange('imagem', url)}
-        onUpload={handleUpload}
-        type="image"
-      />
+      {/* Media type selector */}
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-gray-700">Tipo de mídia</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleMediaTypeChange('imagem')}
+            className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              mediaType === 'imagem'
+                ? 'border-blue-500 bg-blue-100 text-blue-700'
+                : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <ImageIcon className="h-4 w-4" />
+            Imagem
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMediaTypeChange('video')}
+            className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              mediaType === 'video'
+                ? 'border-blue-500 bg-blue-100 text-blue-700'
+                : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Video className="h-4 w-4" />
+            Vídeo (max 2min)
+          </button>
+        </div>
+      </div>
+
+      {mediaType === 'imagem' ? (
+        <FileUpload
+          label="Imagem"
+          accept="image/*"
+          value={form.imagem || null}
+          onChange={(url) => handleChange('imagem', url)}
+          onUpload={handleUploadImage}
+          type="image"
+        />
+      ) : (
+        <FileUpload
+          label="Vídeo (máximo 2 minutos)"
+          accept="video/*"
+          value={form.video || null}
+          onChange={(url) => handleChange('video', url)}
+          onUpload={handleUploadVideo}
+          type="video"
+        />
+      )}
 
       <div className="flex gap-2">
         <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>

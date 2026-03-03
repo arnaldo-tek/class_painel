@@ -38,6 +38,7 @@ import { ChatPage } from '@/features/chat/ChatPage'
 import { FaqPage } from '@/features/faq/FaqPage'
 import { MeuPerfilPage } from '@/features/perfil/MeuPerfilPage'
 import { CardsPage } from '@/features/cards/CardsPage'
+import { ConfiguracoesPage } from '@/features/configuracoes/ConfiguracoesPage'
 
 // Root route
 const rootRoute = createRootRoute({
@@ -122,6 +123,7 @@ const suporteProfessoresRoute = createRoute({ getParentRoute: () => protectedRou
 const chatRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/chat', component: ChatPage })
 const meuPerfilRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/meu-perfil', component: MeuPerfilPage })
 const cardsRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/cards', component: CardsPage })
+const configuracoesRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/configuracoes', component: ConfiguracoesPage })
 
 // Index redirect
 const indexRoute = createRoute({
@@ -146,7 +148,7 @@ const routeTree = rootRoute.addChildren([
     noticiasRoute, editaisRoute, audioCursosRoute, documentosRoute, publicidadeRoute, tutoriaisRoute,
     faqRoute,
     comunidadesRoute,
-    meusChamadosRoute, suporteAlunosRoute, suporteProfessoresRoute, chatRoute, meuPerfilRoute, cardsRoute,
+    meusChamadosRoute, suporteAlunosRoute, suporteProfessoresRoute, chatRoute, meuPerfilRoute, cardsRoute, configuracoesRoute,
   ]),
 ])
 

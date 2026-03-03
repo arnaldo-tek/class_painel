@@ -5,6 +5,7 @@ import {
   fetchQuestoesAula, createQuestaoAula, updateQuestaoAula, deleteQuestaoAula,
   fetchAudiosAula, createAudioAula, deleteAudioAula,
   fetchTextosAula, createTextoAula, updateTextoAula, deleteTextoAula,
+  fetchFlashcardsAula, createFlashcardAula, updateFlashcardAula, deleteFlashcardAula,
 } from './modulos-api'
 
 // === Módulos ===
@@ -188,5 +189,40 @@ export function useDeleteTextoAula() {
   return useMutation({
     mutationFn: deleteTextoAula,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['textos-aula'] }),
+  })
+}
+
+// === Flashcards ===
+
+export function useFlashcardsAula(aulaId: string | undefined) {
+  return useQuery({
+    queryKey: ['flashcards-aula', aulaId],
+    queryFn: () => fetchFlashcardsAula(aulaId!),
+    enabled: !!aulaId,
+  })
+}
+
+export function useCreateFlashcardAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createFlashcardAula,
+    onSuccess: (_d, v) => qc.invalidateQueries({ queryKey: ['flashcards-aula', v.aula_id] }),
+  })
+}
+
+export function useUpdateFlashcardAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...updates }: { id: string; pergunta?: string; resposta?: string }) =>
+      updateFlashcardAula(id, updates),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['flashcards-aula'] }),
+  })
+}
+
+export function useDeleteFlashcardAula() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: deleteFlashcardAula,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['flashcards-aula'] }),
   })
 }

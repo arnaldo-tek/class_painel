@@ -114,6 +114,25 @@ export async function togglePublicarCurso(id: string, publicar: boolean) {
   if (error) throw error
 }
 
+export interface CursoEnrollment {
+  id: string
+  user_id: string
+  enrolled_at: string | null
+  is_suspended: boolean | null
+  profiles: { display_name: string | null; email: string | null } | null
+}
+
+export async function fetchCursoEnrollments(cursoId: string) {
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select('id, user_id, enrolled_at, is_suspended, profiles(display_name, email)')
+    .eq('curso_id', cursoId)
+    .order('enrolled_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as CursoEnrollment[]
+}
+
 export async function fetchProfessores() {
   const { data, error } = await supabase
     .from('professor_profiles')

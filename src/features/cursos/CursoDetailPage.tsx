@@ -1,20 +1,27 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { useParams, useNavigate, Link } from '@tanstack/react-router'
 import {
   ArrowLeft, Plus, GripVertical, Pencil, Trash2, X,
   ChevronDown, ChevronRight, FileText, Image as ImageIcon,
-  BookOpen, Music, HelpCircle, Upload, Loader2,
+  BookOpen, Music, HelpCircle, Upload, Loader2, Users, Layers,
+  MessageCircle, Send, User,
 } from 'lucide-react'
-import { useCurso } from './hooks'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { cn } from '@/lib/cn'
+import { supabase } from '@/lib/supabase'
+import { useCurso, useCursoEnrollments } from './hooks'
 import {
   useModulos, useCreateModulo, useUpdateModulo, useDeleteModulo,
   useAulas, useCreateAula, useUpdateAula, useDeleteAula,
   useQuestoesAula, useCreateQuestaoAula, useUpdateQuestaoAula, useDeleteQuestaoAula,
   useAudiosAula, useCreateAudioAula, useDeleteAudioAula,
   useTextosAula, useCreateTextoAula, useUpdateTextoAula, useDeleteTextoAula,
+  useFlashcardsAula, useCreateFlashcardAula, useUpdateFlashcardAula, useDeleteFlashcardAula,
 } from './modulos-hooks'
 import type { Modulo, Aula, QuestaoAula } from './modulos-api'
+import type { CursoEnrollment } from './api'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { useProfessorProfile } from '@/hooks/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +41,9 @@ export function CursoDetailPage() {
   const { isAdmin } = useAuthContext()
   const { data: curso, isLoading: loadingCurso } = useCurso(cursoId)
   const { data: modulos, isLoading: loadingModulos } = useModulos(cursoId)
+  const { data: enrollments, isLoading: loadingEnrollments } = useCursoEnrollments(cursoId)
 
+  const [activeTab, setActiveTab] = useState<'modulos' | 'matriculados' | 'chat'>('modulos')
   const [showModuloForm, setShowModuloForm] = useState(false)
   const [editingModuloId, setEditingModuloId] = useState<string | null>(null)
 
@@ -102,49 +111,460 @@ export function CursoDetailPage() {
         </div>
       </div>
 
-      {/* Modulos section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Modulos ({modulos?.length ?? 0})
-          </h2>
-          <Button size="sm" onClick={() => { setShowModuloForm(true); setEditingModuloId(null) }}>
-            <Plus className="mr-1 h-4 w-4" />
-            Novo Modulo
-          </Button>
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('modulos')}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
+            activeTab === 'modulos'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+          )}
+        >
+          <BookOpen className="h-4 w-4" />
+          Módulos ({modulos?.length ?? 0})
+        </button>
+        <button
+          onClick={() => setActiveTab('matriculados')}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
+            activeTab === 'matriculados'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+          )}
+        >
+          <Users className="h-4 w-4" />
+          Alunos Matriculados ({enrollments?.length ?? 0})
+        </button>
+        <button
+          onClick={() => setActiveTab('chat')}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
+            activeTab === 'chat'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+          )}
+        >
+          <MessageCircle className="h-4 w-4" />
+          Chat
+        </button>
+      </div>
+
+      {/* Tab: Modulos */}
+      {activeTab === 'modulos' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-end">
+            <Button size="sm" onClick={() => { setShowModuloForm(true); setEditingModuloId(null) }}>
+              <Plus className="mr-1 h-4 w-4" />
+              Novo Modulo
+            </Button>
+          </div>
+
+          {showModuloForm && (
+            <ModuloForm
+              cursoId={cursoId}
+              editingId={editingModuloId}
+              modulos={modulos ?? []}
+              onClose={() => { setShowModuloForm(false); setEditingModuloId(null) }}
+            />
+          )}
+
+          {loadingModulos ? (
+            <LoadingSpinner />
+          ) : !modulos?.length ? (
+            <EmptyState
+              icon={<BookOpen className="h-12 w-12" />}
+              title="Nenhum modulo"
+              description="Crie modulos para organizar as aulas do curso."
+            />
+          ) : (
+            <div className="space-y-2">
+              {modulos.map((modulo, idx) => (
+                <ModuloCard
+                  key={modulo.id}
+                  modulo={modulo}
+                  cursoId={cursoId}
+                  index={idx}
+                  isAdmin={isAdmin}
+                  onEdit={() => { setEditingModuloId(modulo.id); setShowModuloForm(true) }}
+                />
+              ))}
+            </div>
+          )}
         </div>
+      )}
 
-        {showModuloForm && (
-          <ModuloForm
-            cursoId={cursoId}
-            editingId={editingModuloId}
-            modulos={modulos ?? []}
-            onClose={() => { setShowModuloForm(false); setEditingModuloId(null) }}
-          />
-        )}
+      {/* Tab: Alunos Matriculados */}
+      {activeTab === 'matriculados' && (
+        <MatriculadosSection enrollments={enrollments ?? []} loading={loadingEnrollments} />
+      )}
 
-        {loadingModulos ? (
-          <LoadingSpinner />
-        ) : !modulos?.length ? (
-          <EmptyState
-            icon={<BookOpen className="h-12 w-12" />}
-            title="Nenhum modulo"
-            description="Crie modulos para organizar as aulas do curso."
-          />
-        ) : (
-          <div className="space-y-2">
-            {modulos.map((modulo, idx) => (
-              <ModuloCard
-                key={modulo.id}
-                modulo={modulo}
-                cursoId={cursoId}
-                index={idx}
-                isAdmin={isAdmin}
-                onEdit={() => { setEditingModuloId(modulo.id); setShowModuloForm(true) }}
-              />
+      {/* Tab: Chat */}
+      {activeTab === 'chat' && (
+        <CursoChatSection enrollments={enrollments ?? []} loading={loadingEnrollments} />
+      )}
+    </div>
+  )
+}
+
+// ========================
+// MatriculadosSection
+// ========================
+
+const ENROLLMENTS_PER_PAGE = 15
+
+function MatriculadosSection({ enrollments, loading }: { enrollments: CursoEnrollment[]; loading: boolean }) {
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+
+  const filtered = enrollments.filter((e) => {
+    if (!search) return true
+    const term = search.toLowerCase()
+    return (
+      e.profiles?.display_name?.toLowerCase().includes(term) ||
+      e.profiles?.email?.toLowerCase().includes(term)
+    )
+  })
+
+  const totalPages = Math.ceil(filtered.length / ENROLLMENTS_PER_PAGE)
+  const paginated = filtered.slice((page - 1) * ENROLLMENTS_PER_PAGE, page * ENROLLMENTS_PER_PAGE)
+
+  if (loading) return <LoadingSpinner />
+
+  return (
+    <div className="space-y-3">
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <Input
+          placeholder="Buscar aluno por nome ou email..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          className="max-w-sm"
+        />
+        <span className="text-sm text-gray-500">{filtered.length} aluno(s)</span>
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon={<Users className="h-12 w-12" />}
+          title={search ? 'Nenhum aluno encontrado' : 'Nenhum aluno matriculado'}
+          description={search ? 'Tente outro termo de busca.' : 'Nenhum aluno se matriculou neste curso ainda.'}
+        />
+      ) : (
+        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+          {/* Table header */}
+          <div className="grid grid-cols-[1fr_auto_auto] gap-4 border-b border-gray-200 bg-gray-50 px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase">
+            <span>Aluno</span>
+            <span>Data matrícula</span>
+            <span>Status</span>
+          </div>
+
+          {/* Rows */}
+          <div className="divide-y divide-gray-100">
+            {paginated.map((e) => (
+              <div key={e.id} className="grid grid-cols-[1fr_auto_auto] gap-4 items-center px-4 py-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600 text-xs font-bold flex-shrink-0">
+                    {(e.profiles?.display_name || e.profiles?.email || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">
+                      {e.profiles?.display_name || e.profiles?.email || 'Aluno'}
+                    </p>
+                    {e.profiles?.display_name && e.profiles?.email && (
+                      <p className="text-xs text-gray-500 truncate">{e.profiles.email}</p>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-gray-500 flex-shrink-0">
+                  {e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString('pt-BR') : '—'}
+                </span>
+                <div className="flex-shrink-0">
+                  {e.is_suspended
+                    ? <Badge variant="danger">Suspenso</Badge>
+                    : <Badge variant="success">Ativo</Badge>
+                  }
+                </div>
+              </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            Página {page} de {totalPages}
+          </p>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Anterior
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Próxima
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ========================
+// CursoChatSection
+// ========================
+
+function CursoChatSection({ enrollments, loading }: { enrollments: CursoEnrollment[]; loading: boolean }) {
+  const { user } = useAuthContext()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const qc = useQueryClient()
+
+  const filtered = enrollments.filter((e) => {
+    if (!search) return true
+    const term = search.toLowerCase()
+    return (
+      e.profiles?.display_name?.toLowerCase().includes(term) ||
+      e.profiles?.email?.toLowerCase().includes(term)
+    )
+  })
+
+  // Buscar ou criar chat entre o professor e o aluno selecionado
+  const { data: activeChatId, isLoading: loadingChat } = useQuery({
+    queryKey: ['curso-chat', user?.id, selectedUserId],
+    queryFn: async () => {
+      if (!user || !selectedUserId) return null
+
+      // Tentar encontrar chat existente
+      const { data: existing } = await supabase
+        .from('chats')
+        .select('id')
+        .or(`and(user_a.eq.${user.id},user_b.eq.${selectedUserId}),and(user_a.eq.${selectedUserId},user_b.eq.${user.id})`)
+        .maybeSingle()
+
+      if (existing) return existing.id
+
+      // Criar novo chat
+      const { data: created, error } = await supabase
+        .from('chats')
+        .insert({ user_a: user.id, user_b: selectedUserId })
+        .select('id')
+        .single()
+
+      if (error) throw error
+      return created.id
+    },
+    enabled: !!user && !!selectedUserId,
+  })
+
+  if (loading) return <LoadingSpinner />
+
+  if (enrollments.length === 0) {
+    return (
+      <EmptyState
+        icon={<MessageCircle className="h-12 w-12" />}
+        title="Nenhum aluno matriculado"
+        description="O chat ficara disponivel quando alunos se matricularem no curso."
+      />
+    )
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-22rem)] gap-4">
+      {/* Lista de alunos */}
+      <div className="w-72 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white flex flex-col">
+        <div className="p-3 border-b border-gray-100 space-y-2">
+          <h3 className="font-semibold text-sm text-gray-900">Alunos ({filtered.length})</h3>
+          <Input
+            placeholder="Buscar aluno..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="text-sm"
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+          {filtered.map((e) => (
+            <button
+              key={e.user_id}
+              onClick={() => setSelectedUserId(e.user_id)}
+              className={cn(
+                'w-full text-left px-3 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3',
+                selectedUserId === e.user_id && 'bg-blue-50',
+              )}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600 text-xs font-bold shrink-0">
+                {(e.profiles?.display_name || e.profiles?.email || '?')[0].toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {e.profiles?.display_name || e.profiles?.email || 'Aluno'}
+                </p>
+                {e.profiles?.display_name && e.profiles?.email && (
+                  <p className="text-xs text-gray-500 truncate">{e.profiles.email}</p>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Area de mensagens */}
+      {selectedUserId && activeChatId ? (
+        <CursoChatMessages
+          chatId={activeChatId}
+          otherName={
+            enrollments.find((e) => e.user_id === selectedUserId)?.profiles?.display_name ||
+            enrollments.find((e) => e.user_id === selectedUserId)?.profiles?.email ||
+            'Aluno'
+          }
+        />
+      ) : loadingChat && selectedUserId ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+        </div>
+      ) : (
+        <div className="flex-1 flex items-center justify-center rounded-lg border border-gray-200 bg-white">
+          <EmptyState
+            icon={<MessageCircle className="h-12 w-12" />}
+            title="Selecione um aluno"
+            description="Escolha um aluno na lista para iniciar a conversa."
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ========================
+// CursoChatMessages
+// ========================
+
+function CursoChatMessages({ chatId, otherName }: { chatId: string; otherName: string }) {
+  const { user } = useAuthContext()
+  const [text, setText] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const qc = useQueryClient()
+
+  const { data: messages } = useQuery({
+    queryKey: ['chat-messages', chatId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      return data ?? []
+    },
+  })
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`curso-chat-${chatId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `chat_id=eq.${chatId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ['chat-messages', chatId] })
+        },
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [chatId, qc])
+
+  // Scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const sendMutation = useMutation({
+    mutationFn: async (msg: string) => {
+      const { error } = await supabase.from('chat_messages').insert({
+        chat_id: chatId,
+        user_id: user!.id,
+        text: msg,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['chat-messages', chatId] })
+      qc.invalidateQueries({ queryKey: ['chats'] })
+    },
+  })
+
+  function handleSend() {
+    if (!text.trim()) return
+    sendMutation.mutate(text.trim())
+    setText('')
+  }
+
+  return (
+    <div className="flex flex-1 flex-col rounded-lg border border-gray-200 bg-white">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+        <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center">
+          <User className="h-4 w-4 text-purple-500" />
+        </div>
+        <p className="font-semibold text-sm text-gray-900">{otherName}</p>
+      </div>
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {!messages?.length ? (
+          <p className="text-center text-sm text-gray-400 py-8">Nenhuma mensagem ainda. Envie a primeira!</p>
+        ) : (
+          messages.map((msg: any) => {
+            const isMe = msg.user_id === user?.id
+            return (
+              <div key={msg.id} className={cn('flex', isMe ? 'justify-end' : 'justify-start')}>
+                <div className={cn(
+                  'max-w-[70%] rounded-lg px-3 py-2 text-sm',
+                  isMe ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900',
+                )}>
+                  <p>{msg.text}</p>
+                  <p className={cn('text-xs mt-1', isMe ? 'text-blue-200' : 'text-gray-400')}>
+                    {msg.created_at ? new Date(msg.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : ''}
+                  </p>
+                </div>
+              </div>
+            )
+          })
         )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-gray-200 px-4 py-3 flex items-center gap-3">
+        <input
+          type="text"
+          placeholder="Digite uma mensagem..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+          className="flex-1 rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <button
+          onClick={handleSend}
+          disabled={!text.trim() || sendMutation.isPending}
+          className="h-11 w-11 shrink-0 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:bg-blue-700 disabled:opacity-40 transition-colors"
+        >
+          <Send className="h-5 w-5" />
+        </button>
       </div>
     </div>
   )
@@ -395,7 +815,7 @@ function AulaItem({
 // AulaModal (create + edit unified)
 // ========================
 
-type AulaTab = 'geral' | 'textos' | 'audios' | 'questoes'
+type AulaTab = 'geral' | 'textos' | 'audios' | 'flashcards' | 'questoes'
 
 function AulaModal({
   cursoId, moduloId, totalAulas, aula, onClose,
@@ -409,7 +829,8 @@ function AulaModal({
     { key: 'geral', label: 'Geral', icon: BookOpen },
     { key: 'textos', label: 'Textos', icon: FileText, editOnly: true },
     { key: 'audios', label: 'Audios', icon: Music, editOnly: true },
-    { key: 'questoes', label: 'Questoes', icon: HelpCircle, editOnly: true },
+    { key: 'flashcards', label: 'Flashcards', icon: Layers, editOnly: true },
+    { key: 'questoes', label: 'Questões', icon: HelpCircle, editOnly: true },
   ]
 
   const visibleTabs = isEditing ? tabs : tabs.filter((t) => !t.editOnly)
@@ -452,6 +873,7 @@ function AulaModal({
       )}
       {activeTab === 'textos' && aula && <AulaTextosTab aulaId={aula.id} />}
       {activeTab === 'audios' && aula && <AulaAudiosTab aulaId={aula.id} />}
+      {activeTab === 'flashcards' && aula && <AulaFlashcardsTab aulaId={aula.id} cursoId={cursoId} />}
       {activeTab === 'questoes' && aula && <AulaQuestoesTab aulaId={aula.id} />}
     </Modal>
   )
@@ -531,31 +953,9 @@ function AulaGeralTab({
         autoFocus
       />
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Descricao</label>
-        <textarea
-          value={form.descricao}
-          onChange={(e) => handleChange('descricao', e.target.value)}
-          rows={2}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          placeholder="Breve descricao da aula..."
-        />
-      </div>
-
       {/* Campos extras apenas na edicao */}
       {isEditing && (
         <>
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700">Texto da Aula</label>
-            <textarea
-              value={form.texto_aula}
-              onChange={(e) => handleChange('texto_aula', e.target.value)}
-              rows={6}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Conteudo textual da aula..."
-            />
-          </div>
-
           <FileUpload
             label="Video da Aula"
             accept="video/*"
@@ -697,7 +1097,7 @@ function AulaTextosTab({ aulaId }: { aulaId: string }) {
             </div>
           ) : (
             <div className="flex gap-2">
-              <p className="flex-1 text-sm text-gray-700 whitespace-pre-wrap">{t.texto}</p>
+              <p className="flex-1 text-sm text-gray-700 whitespace-pre-wrap break-all overflow-hidden">{t.texto}</p>
               <div className="flex gap-0.5 flex-shrink-0">
                 <Tooltip text="Editar">
                   <button
@@ -851,6 +1251,145 @@ function AulaAudiosTab({ aulaId }: { aulaId: string }) {
 }
 
 // ========================
+// Tab: Flashcards
+// ========================
+
+function AulaFlashcardsTab({ aulaId, cursoId }: { aulaId: string; cursoId: string }) {
+  const { user } = useAuthContext()
+  const { data: professorProfile } = useProfessorProfile(user?.id)
+  const { data: flashcards, isLoading } = useFlashcardsAula(aulaId)
+  const createMutation = useCreateFlashcardAula()
+  const updateMutation = useUpdateFlashcardAula()
+  const deleteMutation = useDeleteFlashcardAula()
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [pergunta, setPergunta] = useState('')
+  const [resposta, setResposta] = useState('')
+
+  function openEdit(fc: { id: string; pergunta: string; resposta: string }) {
+    setEditingId(fc.id)
+    setPergunta(fc.pergunta)
+    setResposta(fc.resposta)
+    setShowForm(true)
+  }
+
+  function openNew() {
+    setEditingId(null)
+    setPergunta('')
+    setResposta('')
+    setShowForm(true)
+  }
+
+  function closeForm() {
+    setShowForm(false)
+    setEditingId(null)
+    setPergunta('')
+    setResposta('')
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!pergunta.trim() || !resposta.trim()) return
+
+    if (editingId) {
+      await updateMutation.mutateAsync({ id: editingId, pergunta: pergunta.trim(), resposta: resposta.trim() })
+    } else {
+      await createMutation.mutateAsync({
+        aula_id: aulaId,
+        curso_id: cursoId,
+        professor_id: professorProfile?.id ?? '',
+        pergunta: pergunta.trim(),
+        resposta: resposta.trim(),
+      })
+    }
+    closeForm()
+  }
+
+  if (isLoading) return <LoadingSpinner />
+
+  return (
+    <div className="space-y-4">
+      {(flashcards ?? []).map((fc, idx) => (
+        <div key={fc.id} className="rounded-lg border border-gray-200 p-4 space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-xs font-bold text-purple-700 flex-shrink-0">
+              {idx + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800">{fc.pergunta}</p>
+              <p className="text-sm text-gray-600 mt-1 bg-gray-50 rounded px-3 py-2">{fc.resposta}</p>
+            </div>
+            <div className="flex gap-0.5 flex-shrink-0">
+              <Tooltip text="Editar">
+                <button
+                  onClick={() => openEdit(fc)}
+                  className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </Tooltip>
+              <Tooltip text="Excluir">
+                <button
+                  onClick={() => { if (confirm('Excluir este flashcard?')) deleteMutation.mutate(fc.id) }}
+                  className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {(flashcards ?? []).length === 0 && !showForm && (
+        <p className="text-sm text-gray-400 text-center py-4">Nenhum flashcard adicionado</p>
+      )}
+
+      {showForm ? (
+        <form onSubmit={handleSubmit} className="rounded-lg border border-blue-200 bg-blue-50 p-4 space-y-3">
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Pergunta (frente)</label>
+            <textarea
+              value={pergunta}
+              onChange={(e) => setPergunta(e.target.value)}
+              rows={2}
+              required
+              autoFocus
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Ex: O que é mandado de segurança?"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">Resposta (verso)</label>
+            <textarea
+              value={resposta}
+              onChange={(e) => setResposta(e.target.value)}
+              rows={3}
+              required
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder="Ex: É uma ação constitucional que..."
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={createMutation.isPending || updateMutation.isPending}>
+              {(createMutation.isPending || updateMutation.isPending) ? 'Salvando...' : editingId ? 'Salvar' : 'Adicionar'}
+            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={closeForm}>
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <Button size="sm" onClick={openNew}>
+          <Plus className="mr-1 h-4 w-4" />
+          Novo flashcard
+        </Button>
+      )}
+    </div>
+  )
+}
+
+// ========================
 // Tab: Questoes
 // ========================
 
@@ -879,7 +1418,7 @@ function AulaQuestoesTab({ aulaId }: { aulaId: string }) {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 flex-shrink-0">
                   {idx + 1}
                 </span>
-                <p className="flex-1 text-sm font-medium text-gray-800">{q.pergunta}</p>
+                <p className="flex-1 text-sm font-medium text-gray-800 break-all">{q.pergunta}</p>
                 <div className="flex gap-0.5 flex-shrink-0">
                   <Tooltip text="Editar">
                     <button
@@ -911,8 +1450,8 @@ function AulaQuestoesTab({ aulaId }: { aulaId: string }) {
                           : 'text-gray-600'
                       }`}
                     >
-                      <span className="text-xs font-bold">{String.fromCharCode(65 + altIdx)})</span>
-                      {alt}
+                      <span className="text-xs font-bold flex-shrink-0">{String.fromCharCode(65 + altIdx)})</span>
+                      <span className="break-all">{alt}</span>
                       {isCorreta && <Badge variant="success">Correta</Badge>}
                     </div>
                   )
@@ -1035,28 +1574,29 @@ function QuestaoForm({
         />
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-gray-700">Alternativas *</label>
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-gray-700">Alternativas * (marque a correta)</label>
         {alternativas.map((alt, idx) => (
-          <div key={idx} className="flex items-center gap-2">
+          <div key={idx} className="flex items-start gap-2">
             <input
               type="radio"
               name="resposta"
               checked={respostaIdx === idx}
               onChange={() => setRespostaIdx(idx)}
               disabled={!alt.trim()}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-2"
               title="Marcar como correta"
             />
-            <span className="text-xs font-bold text-gray-500 w-4">{String.fromCharCode(65 + idx)})</span>
-            <Input
+            <span className="text-sm text-gray-500 w-5 mt-2">{String.fromCharCode(65 + idx)})</span>
+            <textarea
               value={alt}
               onChange={(e) => handleAlternativaChange(idx, e.target.value)}
               placeholder={`Alternativa ${String.fromCharCode(65 + idx)}`}
-              className="flex-1"
+              rows={2}
+              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             {alternativas.length > 2 && (
-              <button type="button" onClick={() => removeAlternativa(idx)} className="text-gray-400 hover:text-red-500">
+              <button type="button" onClick={() => removeAlternativa(idx)} className="text-gray-400 hover:text-red-500 mt-2">
                 <X className="h-4 w-4" />
               </button>
             )}
@@ -1067,15 +1607,29 @@ function QuestaoForm({
             + Adicionar alternativa
           </button>
         )}
-        <p className="text-xs text-gray-500">Selecione o radio button da alternativa correta</p>
       </div>
 
-      <Input
-        label="Video explicativo (URL, opcional)"
-        value={video}
-        onChange={(e) => setVideo(e.target.value)}
-        placeholder="https://..."
-      />
+      <div className="space-y-3">
+        <label className="text-sm font-medium text-gray-700">Vídeo explicativo (opcional)</label>
+        <Input
+          placeholder="URL do vídeo (YouTube, Vimeo, etc.)"
+          value={video}
+          onChange={(e) => setVideo(e.target.value)}
+        />
+        <div className="relative flex items-center">
+          <div className="flex-grow border-t border-gray-200" />
+          <span className="mx-3 text-xs text-gray-400">ou</span>
+          <div className="flex-grow border-t border-gray-200" />
+        </div>
+        <FileUpload
+          label="Upload de Vídeo"
+          accept="video/*"
+          type="video"
+          value={video && !video.startsWith('http') ? video : null}
+          onChange={(url) => setVideo(url ?? '')}
+          onUpload={(file) => uploadFile('aulas', file, 'videos-questoes')}
+        />
+      </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

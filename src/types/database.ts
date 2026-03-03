@@ -2237,6 +2237,24 @@ export type Database = {
           },
         ]
       }
+      platform_settings: {
+        Row: {
+          key: string
+          value: string
+          updated_at: string | null
+        }
+        Insert: {
+          key: string
+          value: string
+          updated_at?: string | null
+        }
+        Update: {
+          key?: string
+          value?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       post_professores: {
         Row: {
           created_at: string | null

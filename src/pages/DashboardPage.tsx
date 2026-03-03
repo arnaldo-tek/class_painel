@@ -13,11 +13,17 @@ function useProfileName(userId: string | undefined) {
     queryFn: async () => {
       if (!userId) return null
       const { data } = await supabase
+        .from('professor_profiles')
+        .select('nome_professor')
+        .eq('user_id', userId)
+        .single()
+      if (data?.nome_professor) return data.nome_professor
+      const { data: profile } = await supabase
         .from('profiles')
         .select('display_name')
         .eq('id', userId)
         .single()
-      return data?.display_name ?? null
+      return profile?.display_name ?? null
     },
     enabled: !!userId,
   })

@@ -52,7 +52,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 overflow-hidden break-words">
           {children}
         </div>
       </div>

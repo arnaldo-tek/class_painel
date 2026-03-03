@@ -248,6 +248,14 @@ export const navigation: NavItem[] = [
     label: 'Chat',
     path: '/chat',
     icon: 'MessageCircle',
-    roles: ['admin', 'professor'],
+    roles: ['admin'],
+  },
+
+  // ─── Admin only ───────────────────────────────────────────────────────────
+  {
+    label: 'Configurações',
+    path: '/configuracoes',
+    icon: 'Settings',
+    roles: ['admin'],
   },
 ]

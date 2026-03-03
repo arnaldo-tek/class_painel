@@ -240,3 +240,53 @@ export async function deleteTextoAula(id: string) {
   const { error } = await supabase.from('textos_da_aula').delete().eq('id', id)
   if (error) throw error
 }
+
+// === Flashcards (professor) ===
+
+export type FlashcardAula = Tables<'flashcards'>
+
+export async function fetchFlashcardsAula(aulaId: string) {
+  const { data, error } = await supabase
+    .from('flashcards')
+    .select('*')
+    .eq('aula_id', aulaId)
+    .is('aluno_id', null)
+    .order('created_at')
+
+  if (error) throw error
+  return data ?? []
+}
+
+export async function createFlashcardAula(flashcard: {
+  aula_id: string
+  professor_id: string
+  curso_id?: string | null
+  pergunta: string
+  resposta: string
+}) {
+  const { data, error } = await supabase
+    .from('flashcards')
+    .insert(flashcard)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function updateFlashcardAula(id: string, updates: { pergunta?: string; resposta?: string }) {
+  const { data, error } = await supabase
+    .from('flashcards')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function deleteFlashcardAula(id: string) {
+  const { error } = await supabase.from('flashcards').delete().eq('id', id)
+  if (error) throw error
+}
