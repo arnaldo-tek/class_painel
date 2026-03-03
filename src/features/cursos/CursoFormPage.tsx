@@ -252,7 +252,7 @@ export function CursoFormPage() {
       professor_id: form.professor_id,
       categoria_id: form.categoria_id || null,
       video_aula_apresentacao: form.video_aula_apresentacao.trim() || null,
-      taxa_superclasse: parseFloat(form.taxa_superclasse || defaultMarkup) || 30,
+      taxa_superclasse: parseFloat(defaultMarkup) || 30,
       is_publicado: form.is_publicado,
       is_degustacao: form.is_degustacao,
       imagem: form.imagem || null,
@@ -375,18 +375,6 @@ export function CursoFormPage() {
               placeholder="0.00"
             />
 
-            {isAdmin && (
-              <Input
-                id="taxa_superclasse"
-                label="Taxa plataforma (%)"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={form.taxa_superclasse}
-                onChange={(e) => handleChange('taxa_superclasse', e.target.value)}
-              />
-            )}
           </div>
 
           {form.preco && parseFloat(form.preco) > 0 && (
@@ -394,10 +382,10 @@ export function CursoFormPage() {
               <p className="text-sm text-blue-800">
                 Preço final para o aluno:{' '}
                 <strong>
-                  R$ {(parseFloat(form.preco) * (1 + (parseFloat(form.taxa_superclasse || defaultMarkup) || 30) / 100)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  R$ {(parseFloat(form.preco) * (1 + (parseFloat(defaultMarkup) || 30) / 100)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </strong>
                 <span className="ml-2 text-xs text-blue-600">
-                  (margem de {form.taxa_superclasse || defaultMarkup}%)
+                  (margem de {defaultMarkup}%)
                 </span>
               </p>
             </div>
