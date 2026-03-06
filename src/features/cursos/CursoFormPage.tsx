@@ -137,7 +137,7 @@ export function CursoFormPage() {
         orgao_id: '',
         escolaridade_id: '',
         cargo_id: '',
-        nivel_id: '',
+        nivel_id: (existingCurso as any).nivel_id ?? '',
       })
     }
   }, [existingCurso])
@@ -262,6 +262,7 @@ export function CursoFormPage() {
       escolaridade: form.escolaridade || null,
       cargo: form.cargo || null,
       disciplina_id: form.disciplina_id || null,
+      nivel_id: form.nivel_id || null,
     }
 
     try {
