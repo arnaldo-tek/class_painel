@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent, type ReactNode } from 'react'
 import {
   Plus, FolderOpen, FolderClosed, FileText, Trash2, Pencil, ChevronRight, ChevronDown,
-  Music, HelpCircle, AlignLeft, Upload, Loader2, Search, MoreHorizontal,
+  Music, HelpCircle, AlignLeft, Upload, Loader2, Search, MoreHorizontal, X,
 } from 'lucide-react'
 import {
   usePacotesLeis, useCreatePacoteLei, useDeletePacoteLei,
@@ -665,12 +665,12 @@ function QuestoesTab({ leiId }: { leiId: string }) {
 function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any; onClose: () => void }) {
   const [pergunta, setPergunta] = useState(editing?.pergunta ?? '')
   const [alternativas, setAlternativas] = useState<string[]>(editing?.alternativas ?? ['', '', '', ''])
-  const [respostaIdx, setRespostaIdx] = useState(() => {
+  const [respostaIdx, setRespostaIdx] = useState<number | null>(() => {
     if (editing?.resposta && editing?.alternativas) {
       const idx = (editing.alternativas as string[]).indexOf(editing.resposta)
-      return idx >= 0 ? idx : 0
+      return idx >= 0 ? idx : null
     }
-    return 0
+    return null
   })
   const [video, setVideo] = useState(editing?.video ?? '')
   const [respostaEscrita, setRespostaEscrita] = useState(editing?.resposta_escrita ?? '')
@@ -684,20 +684,35 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
     setAlternativas((prev) => prev.map((a, i) => i === idx ? value : a))
   }
 
+  function addAlternativa() {
+    if (alternativas.length < 6) setAlternativas((prev) => [...prev, ''])
+  }
+
+  function removeAlternativa(idx: number) {
+    if (alternativas.length <= 2) return
+    setAlternativas((prev) => prev.filter((_, i) => i !== idx))
+    if (respostaIdx === idx) {
+      setRespostaIdx(null)
+    } else if (respostaIdx !== null && respostaIdx > idx) {
+      setRespostaIdx(respostaIdx - 1)
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const filledAlts = alternativas.filter((a) => a.trim())
     if (!pergunta.trim()) { setError('Pergunta é obrigatória'); return }
     if (filledAlts.length < 2) { setError('Mínimo 2 alternativas'); return }
-    const resposta = alternativas[respostaIdx]?.trim()
-    if (!resposta) { setError('Selecione uma alternativa válida como resposta'); return }
+    if (respostaIdx === null || !alternativas[respostaIdx]?.trim()) {
+      setError('Selecione a resposta correta'); return
+    }
 
     try {
       const payload = {
         lei_id: leiId,
         pergunta: pergunta.trim(),
         alternativas: filledAlts,
-        resposta,
+        resposta: alternativas[respostaIdx].trim(),
         video: video.trim() || null,
         resposta_escrita: respostaEscrita.trim() || null,
       }
@@ -715,18 +730,19 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Pergunta</label>
+        <label className="text-sm font-medium text-gray-700">Pergunta *</label>
         <textarea
           className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          rows={3}
+          rows={2}
           value={pergunta}
           onChange={(e) => setPergunta(e.target.value)}
+          placeholder="Digite a pergunta..."
           required
         />
       </div>
 
       <div className="space-y-3">
-        <label className="text-sm font-medium text-gray-700">Alternativas (marque a correta)</label>
+        <label className="text-sm font-medium text-gray-700">Alternativas * (marque a correta)</label>
         {alternativas.map((alt, i) => (
           <div key={i} className="flex items-start gap-2">
             <input
@@ -734,7 +750,9 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
               name="resposta"
               checked={respostaIdx === i}
               onChange={() => setRespostaIdx(i)}
-              className="h-4 w-4 text-blue-600 mt-2"
+              disabled={!alt.trim()}
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-2"
+              title="Marcar como correta"
             />
             <span className="text-sm text-gray-500 w-5 mt-2">{String.fromCharCode(65 + i)})</span>
             <textarea
@@ -744,8 +762,18 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
               rows={2}
               className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
+            {alternativas.length > 2 && (
+              <button type="button" onClick={() => removeAlternativa(i)} className="text-gray-400 hover:text-red-500 mt-2">
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         ))}
+        {alternativas.length < 6 && (
+          <button type="button" onClick={addAlternativa} className="text-sm text-blue-600 hover:text-blue-700">
+            + Adicionar alternativa
+          </button>
+        )}
       </div>
 
       <div className="space-y-1">
