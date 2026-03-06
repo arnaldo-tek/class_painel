@@ -3,6 +3,10 @@
 -- Professors insert with aluno_id = NULL and professor_id = their professor profile id
 
 DROP POLICY IF EXISTS "fc_own" ON flashcards;
+DROP POLICY IF EXISTS "fc_aluno_own" ON flashcards;
+DROP POLICY IF EXISTS "fc_professor_own" ON flashcards;
+DROP POLICY IF EXISTS "fc_admin" ON flashcards;
+DROP POLICY IF EXISTS "fc_aluno_read_professor" ON flashcards;
 
 -- Alunos: manage their own flashcards
 CREATE POLICY "fc_aluno_own" ON flashcards

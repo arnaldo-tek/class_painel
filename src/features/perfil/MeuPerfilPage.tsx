@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useRef, type FormEvent } from 'react'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useProfessorProfile } from '@/hooks/useProfile'
 import { useUpdateProfessorProfile } from './hooks'
@@ -7,6 +7,7 @@ import { FileUpload } from '@/components/ui/file-upload'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
+import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react'
 
 type TabKey = 'dados' | 'fotos' | 'bancario'
 
@@ -127,9 +128,12 @@ function TabDadosPessoais({ profile, email }: { profile: Record<string, unknown>
 
 function TabFotosDescricao({ profile }: { profile: Record<string, unknown> }) {
   const updateMutation = useUpdateProfessorProfile()
+  const destaquesInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingDestaque, setUploadingDestaque] = useState(false)
   const [form, setForm] = useState({
     foto_perfil: (profile.foto_perfil as string) ?? '',
     foto_capa: (profile.foto_capa as string) ?? '',
+    fotos_destaque: ((profile.fotos_destaque as string[]) ?? []) as string[],
     biografia: (profile.biografia as string) ?? '',
     disciplina: (profile.disciplina as string) ?? '',
     instagram: (profile.instagram as string) ?? '',
@@ -154,6 +158,30 @@ function TabFotosDescricao({ profile }: { profile: Record<string, unknown> }) {
     return uploadFile('professores', file, folder)
   }
 
+  async function handleAddDestaque(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setUploadingDestaque(true)
+    try {
+      const url = await uploadFile('professores', file, 'destaques')
+      setForm((f) => ({ ...f, fotos_destaque: [...f.fotos_destaque, url] }))
+      setSuccess(false)
+    } catch {
+      // silently fail
+    } finally {
+      setUploadingDestaque(false)
+    }
+  }
+
+  function handleRemoveDestaque(index: number) {
+    setForm((f) => ({
+      ...f,
+      fotos_destaque: f.fotos_destaque.filter((_, i) => i !== index),
+    }))
+    setSuccess(false)
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 bg-white p-6">
       <div className="grid gap-6 sm:grid-cols-2">
@@ -173,6 +201,42 @@ function TabFotosDescricao({ profile }: { profile: Record<string, unknown> }) {
           onUpload={(file) => handleUpload(file, 'capas')}
           type="image"
         />
+      </div>
+
+      {/* Fotos de Destaque */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">
+          Fotos de Destaque
+          <span className="ml-1 text-xs text-gray-400 font-normal">(carrossel exibido no seu perfil)</span>
+        </label>
+        <div className="flex flex-wrap gap-3">
+          {form.fotos_destaque.map((url, i) => (
+            <div key={i} className="relative group">
+              <img src={url} alt="" className="h-28 w-40 rounded-lg object-cover border border-gray-200" />
+              <button
+                type="button"
+                onClick={() => handleRemoveDestaque(i)}
+                className="absolute -right-2 -top-2 rounded-full bg-white p-1 shadow border border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="h-3.5 w-3.5 text-red-500" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => destaquesInputRef.current?.click()}
+            disabled={uploadingDestaque}
+            className="flex h-28 w-40 flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-50"
+          >
+            {uploadingDestaque ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <ImageIcon className="h-6 w-6" />
+            )}
+            <span className="text-xs">{uploadingDestaque ? 'Enviando...' : 'Adicionar'}</span>
+          </button>
+        </div>
+        <input ref={destaquesInputRef} type="file" accept="image/*" onChange={handleAddDestaque} className="hidden" />
       </div>
 
       <div className="space-y-4">
