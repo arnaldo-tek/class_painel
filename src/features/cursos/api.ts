@@ -11,6 +11,12 @@ export interface CursosFilters {
   professorId?: string
   categoriaId?: string
   status?: 'publicado' | 'rascunho' | 'encerrado' | ''
+  estado?: string
+  cidade?: string
+  orgao?: string
+  escolaridade?: string
+  cargo?: string
+  disciplinaId?: string
   page?: number
   perPage?: number
 }
@@ -18,7 +24,7 @@ export interface CursosFilters {
 const PAGE_SIZE = 20
 
 export async function fetchCursos(filters: CursosFilters) {
-  const { search, professorId, categoriaId, status, page = 1, perPage = PAGE_SIZE } = filters
+  const { search, professorId, categoriaId, status, estado, cidade, orgao, escolaridade, cargo, disciplinaId, page = 1, perPage = PAGE_SIZE } = filters
 
   let query = supabase
     .from('cursos')
@@ -46,6 +52,25 @@ export async function fetchCursos(filters: CursosFilters) {
     query = query.eq('is_publicado', false)
   } else if (status === 'encerrado') {
     query = query.eq('is_encerrado', true)
+  }
+
+  if (estado) {
+    query = query.eq('estado', estado)
+  }
+  if (cidade) {
+    query = query.eq('cidade', cidade)
+  }
+  if (orgao) {
+    query = query.eq('orgao', orgao)
+  }
+  if (escolaridade) {
+    query = query.eq('escolaridade', escolaridade)
+  }
+  if (cargo) {
+    query = query.eq('cargo', cargo)
+  }
+  if (disciplinaId) {
+    query = query.eq('disciplina_id', disciplinaId)
   }
 
   const from = (page - 1) * perPage

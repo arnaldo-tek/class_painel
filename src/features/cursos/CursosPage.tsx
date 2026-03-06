@@ -2,6 +2,16 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Search, Plus, BookOpen, Pencil, Globe, XCircle, ListVideo } from 'lucide-react'
 import { useCursos, useProfessores, useCategoriasCurso, useEncerrarCurso, useTogglePublicarCurso } from './hooks'
+import {
+  useCategoria,
+  useEstados,
+  useMunicipios,
+  useEscolaridades,
+  useNiveis,
+  useOrgaos,
+  useCargos,
+  useDisciplinas,
+} from './filtros-hooks'
 import type { CursosFilters, Curso } from './api'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useProfessorProfile } from '@/hooks/useProfile'
@@ -28,6 +38,12 @@ export function CursosPage() {
   const professorApproved = isAdmin || !isProfessor || (professorProfile?.approval_status === 'aprovado' && !professorProfile?.is_blocked)
   const [filters, setFilters] = useState<CursosFilters>({ page: 1 })
   const [searchInput, setSearchInput] = useState('')
+  // IDs auxiliares para cascata de sub-filtros (não vão para a query de cursos)
+  const [estadoId, setEstadoId] = useState('')
+  const [municipioId, setMunicipioId] = useState('')
+  const [orgaoId, setOrgaoId] = useState('')
+  const [escolaridadeId, setEscolaridadeId] = useState('')
+  const [cargoId, setCargoId] = useState('')
 
   // Professor só vê seus próprios cursos (usa professor_profiles.id, não user.id)
   const effectiveFilters: CursosFilters = {
@@ -41,8 +57,119 @@ export function CursosPage() {
   const encerrarMutation = useEncerrarCurso()
   const togglePublicarMutation = useTogglePublicarCurso()
 
+  // Sub-filtros dinâmicos baseados na categoria selecionada
+  const { data: categoriaFiltros } = useCategoria(filters.categoriaId || undefined)
+  const filtroEstado = categoriaFiltros?.filtro_estado ?? false
+  const filtroCidade = categoriaFiltros?.filtro_cidade ?? false
+  const filtroEscolaridade = categoriaFiltros?.filtro_escolaridade ?? false
+  const filtroNivel = categoriaFiltros?.filtro_nivel ?? false
+  const filtroOrgao = categoriaFiltros?.filtro_orgao ?? false
+  const filtroCargo = categoriaFiltros?.filtro_cargo ?? false
+  const filtroDisciplina = categoriaFiltros?.filtro_disciplina ?? false
+  const hasSubFilters = filtroEstado || filtroCidade || filtroEscolaridade || filtroNivel || filtroOrgao || filtroCargo || filtroDisciplina
+
+  const { data: estados } = useEstados(filtroEstado)
+  const { data: municipios } = useMunicipios(estadoId || undefined, filtroCidade && !!estadoId)
+  const { data: escolaridades } = useEscolaridades(filtroEscolaridade)
+  const { data: niveis } = useNiveis(filtroNivel)
+  const { data: orgaos } = useOrgaos(
+    { categoriaId: filters.categoriaId, estadoId: estadoId || undefined, municipioId: municipioId || undefined },
+    filtroOrgao,
+  )
+  const { data: cargos } = useCargos(
+    { orgaoId: orgaoId || undefined, escolaridadeId: escolaridadeId || undefined, categoriaId: filters.categoriaId },
+    filtroCargo,
+  )
+  const { data: disciplinas } = useDisciplinas(
+    { cargoId: cargoId || undefined, categoriaId: filters.categoriaId, estadoId: estadoId || undefined, municipioId: municipioId || undefined, orgaoId: orgaoId || undefined },
+    filtroDisciplina,
+  )
+
   function handleSearch() {
     setFilters((f) => ({ ...f, search: searchInput, page: 1 }))
+  }
+
+  function handleCategoriaChange(categoriaId: string) {
+    // Reset sub-filtros ao trocar categoria
+    setEstadoId('')
+    setMunicipioId('')
+    setOrgaoId('')
+    setEscolaridadeId('')
+    setCargoId('')
+    setFilters((f) => ({
+      ...f,
+      categoriaId: categoriaId || undefined,
+      estado: undefined, cidade: undefined, orgao: undefined,
+      escolaridade: undefined, cargo: undefined, disciplinaId: undefined,
+      page: 1,
+    }))
+  }
+
+  function handleEstadoFilterChange(id: string) {
+    const nome = estados?.find((e) => e.id === id)?.nome ?? ''
+    setEstadoId(id)
+    setMunicipioId('')
+    setOrgaoId('')
+    setCargoId('')
+    setFilters((f) => ({
+      ...f,
+      estado: nome || undefined,
+      cidade: undefined, orgao: undefined, cargo: undefined, disciplinaId: undefined,
+      page: 1,
+    }))
+  }
+
+  function handleMunicipioFilterChange(id: string) {
+    const nome = municipios?.find((m) => m.id === id)?.nome ?? ''
+    setMunicipioId(id)
+    setOrgaoId('')
+    setCargoId('')
+    setFilters((f) => ({
+      ...f,
+      cidade: nome || undefined,
+      orgao: undefined, cargo: undefined, disciplinaId: undefined,
+      page: 1,
+    }))
+  }
+
+  function handleEscolaridadeFilterChange(id: string) {
+    const nome = escolaridades?.find((e) => e.id === id)?.nome ?? ''
+    setEscolaridadeId(id)
+    setOrgaoId('')
+    setCargoId('')
+    setFilters((f) => ({
+      ...f,
+      escolaridade: nome || undefined,
+      orgao: undefined, cargo: undefined, disciplinaId: undefined,
+      page: 1,
+    }))
+  }
+
+  function handleOrgaoFilterChange(id: string) {
+    const nome = orgaos?.find((o) => o.id === id)?.nome ?? ''
+    setOrgaoId(id)
+    setCargoId('')
+    setFilters((f) => ({
+      ...f,
+      orgao: nome || undefined,
+      cargo: undefined, disciplinaId: undefined,
+      page: 1,
+    }))
+  }
+
+  function handleCargoFilterChange(id: string) {
+    const nome = cargos?.find((c) => c.id === id)?.nome ?? ''
+    setCargoId(id)
+    setFilters((f) => ({
+      ...f,
+      cargo: nome || undefined,
+      disciplinaId: undefined,
+      page: 1,
+    }))
+  }
+
+  function handleDisciplinaFilterChange(id: string) {
+    setFilters((f) => ({ ...f, disciplinaId: id || undefined, page: 1 }))
   }
 
   function handleEncerrar(id: string, nome: string) {
@@ -116,9 +243,7 @@ export function CursosPage() {
             label: c.nome,
           }))}
           value={filters.categoriaId ?? ''}
-          onChange={(e) =>
-            setFilters((f) => ({ ...f, categoriaId: e.target.value || undefined, page: 1 }))
-          }
+          onChange={(e) => handleCategoriaChange(e.target.value)}
         />
 
         <Select
@@ -138,6 +263,74 @@ export function CursosPage() {
           }
         />
       </div>
+
+      {/* Sub-filtros dinâmicos da categoria */}
+      {hasSubFilters && (
+        <div className="flex flex-wrap gap-3">
+          {filtroEstado && (
+            <Select
+              placeholder="Todos os estados"
+              options={(estados ?? []).map((e) => ({ value: e.id, label: e.nome }))}
+              value={estadoId}
+              onChange={(e) => handleEstadoFilterChange(e.target.value)}
+            />
+          )}
+
+          {filtroCidade && estadoId && (
+            <Select
+              placeholder="Todas as cidades"
+              options={(municipios ?? []).map((m) => ({ value: m.id, label: m.nome }))}
+              value={municipioId}
+              onChange={(e) => handleMunicipioFilterChange(e.target.value)}
+            />
+          )}
+
+          {filtroEscolaridade && (
+            <Select
+              placeholder="Todas as escolaridades"
+              options={(escolaridades ?? []).map((e) => ({ value: e.id, label: e.nome }))}
+              value={escolaridadeId}
+              onChange={(e) => handleEscolaridadeFilterChange(e.target.value)}
+            />
+          )}
+
+          {filtroNivel && (
+            <Select
+              placeholder="Todos os níveis"
+              options={(niveis ?? []).map((n) => ({ value: n.id, label: n.nome }))}
+              value={filters.disciplinaId ?? ''}
+              onChange={(e) => handleDisciplinaFilterChange(e.target.value)}
+            />
+          )}
+
+          {filtroOrgao && (
+            <Select
+              placeholder="Todos os órgãos"
+              options={(orgaos ?? []).map((o) => ({ value: o.id, label: o.nome }))}
+              value={orgaoId}
+              onChange={(e) => handleOrgaoFilterChange(e.target.value)}
+            />
+          )}
+
+          {filtroCargo && (
+            <Select
+              placeholder="Todos os cargos"
+              options={(cargos ?? []).map((c) => ({ value: c.id, label: c.nome }))}
+              value={cargoId}
+              onChange={(e) => handleCargoFilterChange(e.target.value)}
+            />
+          )}
+
+          {filtroDisciplina && (
+            <Select
+              placeholder="Todas as disciplinas"
+              options={(disciplinas ?? []).map((d) => ({ value: d.id, label: d.nome }))}
+              value={filters.disciplinaId ?? ''}
+              onChange={(e) => handleDisciplinaFilterChange(e.target.value)}
+            />
+          )}
+        </div>
+      )}
 
       {/* Content */}
       {isLoading ? (
