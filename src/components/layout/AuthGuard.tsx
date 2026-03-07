@@ -1,5 +1,6 @@
 import { Navigate } from '@tanstack/react-router'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { signOut } from '@/lib/auth'
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading, isAdmin, isProfessor, roles } = useAuthContext()
@@ -34,6 +35,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         <p className="text-gray-600">
           Você não tem permissão para acessar o painel administrativo.
         </p>
+        <button
+          onClick={() => signOut()}
+          className="mt-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+        >
+          Sair e voltar ao login
+        </button>
       </div>
     )
   }

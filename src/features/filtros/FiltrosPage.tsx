@@ -253,7 +253,7 @@ function OrgaosPanel() {
   const [filterCategoriaId, setFilterCategoriaId] = useState('')
   const [error, setError] = useState('')
 
-  const { data: categoriasData } = useCategorias()
+  const { data: categoriasData } = useCategorias('curso')
   const { data: esferasData } = useEsferas()
   const { data: estadosData } = useEstados()
   const { data: cidadesData } = useMunicipiosByEstado(estadoId || undefined)
@@ -412,7 +412,7 @@ function CargosPanel() {
   const [municipioId, setMunicipioId] = useState('')
   const [error, setError] = useState('')
 
-  const { data: categoriasData } = useCategorias()
+  const { data: categoriasData } = useCategorias('curso')
   const { data: esferasData } = useEsferas()
   const { data: estadosData } = useEstados()
   const { data: cidadesData } = useMunicipiosByEstado(estadoId || undefined)
@@ -559,7 +559,7 @@ function DisciplinasPanel() {
   const [cargoId, setCargoId] = useState('')
   const [error, setError] = useState('')
 
-  const { data: categoriasData } = useCategorias()
+  const { data: categoriasData } = useCategorias('curso')
   const { data: esferasData } = useEsferas()
   const { data: estadosData } = useEstados()
   const { data: cidadesData } = useMunicipiosByEstado(estadoId || undefined)
