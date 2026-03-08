@@ -321,7 +321,7 @@ function TutorialForm({ editing, defaultTipo, onClose }: { editing?: Tutorial; d
             type="video"
             value={video && !isUrl(video) ? video : null}
             onChange={(url) => setVideo(url)}
-            onUpload={(file) => uploadFile('tutoriais', file, 'videos')}
+            onUpload={(file, onProgress) => uploadFile('tutoriais', file, 'videos', onProgress)}
           />
         </div>
       ) : (

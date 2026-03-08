@@ -6,25 +6,28 @@ interface FileUploadProps {
   accept: string
   value: string | null
   onChange: (url: string | null) => void
-  onUpload: (file: File) => Promise<string>
+  onUpload: (file: File, onProgress?: (percent: number) => void) => Promise<string>
   type?: 'image' | 'pdf' | 'video'
 }
 
 export function FileUpload({ label, accept, value, onChange, onUpload, type = 'image' }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
 
   async function handleFile(file: File) {
     setError('')
     setUploading(true)
+    setProgress(0)
     try {
-      const url = await onUpload(file)
+      const url = await onUpload(file, (p) => setProgress(p))
       onChange(url)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao enviar arquivo')
     } finally {
       setUploading(false)
+      setProgress(0)
     }
   }
 
@@ -83,6 +86,17 @@ export function FileUpload({ label, accept, value, onChange, onUpload, type = 'i
         )}
         <span>{uploading ? 'Enviando...' : `Clique para adicionar ${typeLabel}`}</span>
       </button>
+      {uploading && progress > 0 && (
+        <div className="space-y-1">
+          <div className="h-2 w-full rounded-full bg-gray-200">
+            <div
+              className="h-2 rounded-full bg-blue-600 transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-gray-500 text-center">{progress}%</p>
+        </div>
+      )}
       <input ref={inputRef} type="file" accept={accept} onChange={handleChange} className="hidden" />
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>

@@ -801,7 +801,7 @@ function QuestaoForm({ leiId, editing, onClose }: { leiId: string; editing?: any
           type="video"
           value={video && !video.startsWith('http') ? video : null}
           onChange={(url) => setVideo(url ?? '')}
-          onUpload={(file) => uploadFile('audiocursos', file, 'videos')}
+          onUpload={(file, onProgress) => uploadFile('audiocursos', file, 'videos', onProgress)}
         />
       </div>
 

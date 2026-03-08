@@ -125,7 +125,7 @@ function FaqForm({ faq, onClose }: { faq: Faq | null; onClose: () => void }) {
         type="video"
         value={video || null}
         onChange={(url) => setVideo(url ?? '')}
-        onUpload={(file) => uploadFile('faq', file, 'videos')}
+        onUpload={(file, onProgress) => uploadFile('faq', file, 'videos', onProgress)}
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2 pt-2">

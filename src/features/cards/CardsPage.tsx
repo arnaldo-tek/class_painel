@@ -7,7 +7,7 @@ import type { PostProfessor } from './api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FileUpload } from '@/components/ui/file-upload'
-import { uploadFile } from '@/lib/storage'
+import { uploadFile, getVideoDuration } from '@/lib/storage'
 import { EmptyState } from '@/components/ui/empty-state'
 
 export function CardsPage() {
@@ -126,19 +126,6 @@ function CardItem({ card, onEdit }: { card: PostProfessor; onEdit: () => void })
   )
 }
 
-function getVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video')
-    video.preload = 'metadata'
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src)
-      resolve(video.duration)
-    }
-    video.onerror = () => reject(new Error('Não foi possível ler o vídeo'))
-    video.src = URL.createObjectURL(file)
-  })
-}
-
 function CardForm({
   professorId, card, onClose,
 }: {
@@ -193,13 +180,13 @@ function CardForm({
     return uploadFile('professores', file, 'cards')
   }
 
-  async function handleUploadVideo(file: File) {
+  async function handleUploadVideo(file: File, onProgress?: (percent: number) => void) {
     // Validate duration client-side
     const duration = await getVideoDuration(file)
     if (duration > MAX_VIDEO_SECONDS) {
       throw new Error(`O vídeo deve ter no máximo 2 minutos. Duração: ${Math.ceil(duration)}s`)
     }
-    return uploadFile('professores', file, 'cards-videos')
+    return uploadFile('professores', file, 'cards-videos', onProgress)
   }
 
   return (

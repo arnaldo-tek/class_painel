@@ -960,9 +960,9 @@ function AulaGeralTab({
             accept="video/*"
             value={form.video_url || null}
             onChange={(url) => handleChange('video_url', url ?? '')}
-            onUpload={async (file) => {
+            onUpload={async (file, onProgress) => {
               try {
-                return await uploadFile('aulas', file, 'videos')
+                return await uploadFile('aulas', file, 'videos', onProgress)
               } catch (err) {
                 setError(`Erro ao subir video: ${err instanceof Error ? err.message : String(err)}`)
                 throw err
@@ -1639,7 +1639,7 @@ function QuestaoForm({
           type="video"
           value={video && !video.startsWith('http') ? video : null}
           onChange={(url) => setVideo(url ?? '')}
-          onUpload={(file) => uploadFile('aulas', file, 'videos-questoes')}
+          onUpload={(file, onProgress) => uploadFile('aulas', file, 'videos-questoes', onProgress)}
         />
       </div>
 
