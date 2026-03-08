@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 
 const TABS = [
   { value: 'curso', label: 'Cursos', color: 'text-blue-600 border-blue-600', bg: 'bg-blue-50' },
+  { value: 'pacote', label: 'Pacotes', color: 'text-purple-600 border-purple-600', bg: 'bg-purple-50' },
   { value: 'noticia', label: 'Notícias', color: 'text-emerald-600 border-emerald-600', bg: 'bg-emerald-50' },
   { value: 'edital', label: 'Editais', color: 'text-amber-600 border-amber-600', bg: 'bg-amber-50' },
 ] as const

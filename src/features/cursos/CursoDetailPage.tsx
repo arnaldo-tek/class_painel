@@ -21,7 +21,6 @@ import {
 import type { Modulo, Aula, QuestaoAula } from './modulos-api'
 import type { CursoEnrollment } from './api'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { useProfessorProfile } from '@/hooks/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -1255,8 +1254,7 @@ function AulaAudiosTab({ aulaId }: { aulaId: string }) {
 // ========================
 
 function AulaFlashcardsTab({ aulaId, cursoId }: { aulaId: string; cursoId: string }) {
-  const { user } = useAuthContext()
-  const { data: professorProfile } = useProfessorProfile(user?.id)
+  const { data: curso } = useCurso(cursoId)
   const { data: flashcards, isLoading } = useFlashcardsAula(aulaId)
   const createMutation = useCreateFlashcardAula()
   const updateMutation = useUpdateFlashcardAula()
@@ -1294,10 +1292,11 @@ function AulaFlashcardsTab({ aulaId, cursoId }: { aulaId: string; cursoId: strin
     if (editingId) {
       await updateMutation.mutateAsync({ id: editingId, pergunta: pergunta.trim(), resposta: resposta.trim() })
     } else {
+      if (!curso?.professor_id) return
       await createMutation.mutateAsync({
         aula_id: aulaId,
         curso_id: cursoId,
-        professor_id: professorProfile?.id ?? '',
+        professor_id: curso.professor_id,
         pergunta: pergunta.trim(),
         resposta: resposta.trim(),
       })

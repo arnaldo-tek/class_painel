@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
         email,
         password,
         email_confirm: true,
+        user_metadata: { display_name: nome_professor, role: 'professor' },
       })
 
       if (createErr) {
@@ -207,18 +208,24 @@ Deno.serve(async (req) => {
         .single()
       if (fetchErr || !prof) return errorResponse('Professor não encontrado')
 
-      // Ban auth user (soft delete = block access + set deleted_at)
-      const { error: banErr } = await admin.auth.admin.updateUserById(prof.user_id, {
-        ban_duration: '87600h',
-      })
-      if (banErr) throw banErr
-
-      // Soft delete
+      // Soft delete professor_profiles
       const { error: updateErr } = await admin
         .from('professor_profiles')
         .update({ deleted_at: new Date().toISOString(), is_blocked: true })
         .eq('id', professor_id)
       if (updateErr) throw updateErr
+
+      // Remove professor role (user keeps any other roles they have)
+      await admin
+        .from('user_roles')
+        .delete()
+        .eq('user_id', prof.user_id)
+        .eq('role', 'professor')
+
+      // Unban auth user so the email can still be used
+      await admin.auth.admin.updateUserById(prof.user_id, {
+        ban_duration: 'none',
+      })
 
       return jsonResponse({ success: true })
     }

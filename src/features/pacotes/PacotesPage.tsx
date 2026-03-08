@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react'
-import { Package, Plus, Pencil, Trash2, X, BookOpen } from 'lucide-react'
+import { Package, Plus, Pencil, Trash2, X, BookOpen, Tags } from 'lucide-react'
 import {
   usePacotes, useCreatePacote, useUpdatePacote, useDeletePacote,
   useAllCursos, useAddCursoToPacote, useRemoveCursoFromPacote,
+  useAddCategoriaToPacote, useRemoveCategoriaFromPacote,
 } from './hooks'
+import { useCategorias } from '../categorias/hooks'
 import type { PacoteWithRelations } from './api'
 import { uploadFile } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
@@ -96,11 +98,32 @@ function PacoteForm({
   const [descricao, setDescricao] = useState(existing?.descricao ?? '')
   const [preco, setPreco] = useState(existing?.preco ? String(existing.preco) : '')
   const [imagem, setImagem] = useState<string | null>(existing?.imagem ?? null)
+  const [selectedCategorias, setSelectedCategorias] = useState<string[]>(
+    () => existing?.pacote_categorias.map((pc) => pc.categoria_id) ?? []
+  )
   const [error, setError] = useState('')
 
+  const { data: categoriasData } = useCategorias('pacote')
   const createMutation = useCreatePacote()
   const updateMutation = useUpdatePacote()
+  const addCategoria = useAddCategoriaToPacote()
+  const removeCategoria = useRemoveCategoriaFromPacote()
   const isSaving = createMutation.isPending || updateMutation.isPending
+
+  function toggleCategoria(id: string) {
+    setSelectedCategorias((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    )
+  }
+
+  async function syncCategorias(pacoteId: string, originalIds: string[]) {
+    const toAdd = selectedCategorias.filter((id) => !originalIds.includes(id))
+    const toRemove = originalIds.filter((id) => !selectedCategorias.includes(id))
+    await Promise.all([
+      ...toAdd.map((categoriaId) => addCategoria.mutateAsync({ pacoteId, categoriaId })),
+      ...toRemove.map((categoriaId) => removeCategoria.mutateAsync({ pacoteId, categoriaId })),
+    ])
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -114,14 +137,21 @@ function PacoteForm({
       }
       if (editingId) {
         await updateMutation.mutateAsync({ id: editingId, ...payload })
+        const originalIds = existing?.pacote_categorias.map((pc) => pc.categoria_id) ?? []
+        await syncCategorias(editingId, originalIds)
       } else {
-        await createMutation.mutateAsync(payload)
+        const created = await createMutation.mutateAsync(payload)
+        if (selectedCategorias.length > 0) {
+          await syncCategorias(created.id, [])
+        }
       }
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar')
     }
   }
+
+  const categorias = categoriasData?.categorias ?? []
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -151,6 +181,18 @@ function PacoteForm({
         />
       </div>
 
+      {categorias.length > 0 && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Categoria</label>
+          <Select
+            placeholder="Selecione a categoria"
+            options={categorias.map((c) => ({ value: c.id, label: c.nome }))}
+            value={selectedCategorias[0] ?? ''}
+            onChange={(e) => setSelectedCategorias(e.target.value ? [e.target.value] : [])}
+          />
+        </div>
+      )}
+
       <div className="space-y-1">
         <label className="text-sm font-medium text-gray-700">Preço (R$)</label>
         <Input placeholder="0.00" type="number" step="0.01" min="0" value={preco} onChange={(e) => setPreco(e.target.value)} />
@@ -170,13 +212,20 @@ function PacoteForm({
 
 function PacoteCard({ pacote, onEdit }: { pacote: PacoteWithRelations; onEdit: () => void }) {
   const [showCursos, setShowCursos] = useState(false)
+  const [showCategorias, setShowCategorias] = useState(false)
+  const [cursoError, setCursoError] = useState('')
   const deleteMutation = useDeletePacote()
   const { data: allCursos } = useAllCursos()
+  const { data: categoriasData } = useCategorias('pacote')
   const addCurso = useAddCursoToPacote()
   const removeCurso = useRemoveCursoFromPacote()
+  const addCategoria = useAddCategoriaToPacote()
+  const removeCategoria = useRemoveCategoriaFromPacote()
 
   const linkedCursoIds = new Set(pacote.pacote_cursos.map((pc) => pc.curso_id))
   const availableCursos = (allCursos ?? []).filter((c) => !linkedCursoIds.has(c.id))
+  const linkedCategoriaIds = new Set(pacote.pacote_categorias.map((pc) => pc.categoria_id))
+  const availableCategorias = (categoriasData?.categorias ?? []).filter((c) => !linkedCategoriaIds.has(c.id))
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-3 overflow-hidden">
@@ -197,6 +246,14 @@ function PacoteCard({ pacote, onEdit }: { pacote: PacoteWithRelations; onEdit: (
         </div>
       </div>
 
+      {pacote.pacote_categorias.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {pacote.pacote_categorias.map((pc) => (
+            <Badge key={pc.categoria_id} variant="default">{pc.categorias?.nome}</Badge>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <span className="text-lg font-bold text-gray-900">
           {pacote.preco ? `R$ ${Number(pacote.preco).toFixed(2)}` : 'Grátis'}
@@ -204,12 +261,20 @@ function PacoteCard({ pacote, onEdit }: { pacote: PacoteWithRelations; onEdit: (
         <Badge>{pacote.pacote_cursos.length} cursos</Badge>
       </div>
 
-      <button
-        onClick={() => setShowCursos(!showCursos)}
-        className="text-sm text-blue-600 hover:text-blue-700"
-      >
-        {showCursos ? 'Ocultar cursos' : 'Gerenciar cursos'}
-      </button>
+      <div className="flex gap-3">
+        <button
+          onClick={() => setShowCursos(!showCursos)}
+          className="text-sm text-blue-600 hover:text-blue-700"
+        >
+          {showCursos ? 'Ocultar cursos' : 'Gerenciar cursos'}
+        </button>
+        <button
+          onClick={() => setShowCategorias(!showCategorias)}
+          className="text-sm text-purple-600 hover:text-purple-700"
+        >
+          {showCategorias ? 'Ocultar categorias' : 'Gerenciar categorias'}
+        </button>
+      </div>
 
       {showCursos && (
         <div className="border-t border-gray-100 pt-3 space-y-2">
@@ -225,13 +290,47 @@ function PacoteCard({ pacote, onEdit }: { pacote: PacoteWithRelations; onEdit: (
               ><X className="h-3.5 w-3.5" /></button>
             </div>
           ))}
+          {cursoError && <p className="text-sm text-red-600">{cursoError}</p>}
           {availableCursos.length > 0 && (
             <Select
               placeholder="Adicionar curso..."
               options={availableCursos.map((c) => ({ value: c.id, label: c.nome }))}
               value=""
               onChange={(e) => {
-                if (e.target.value) addCurso.mutate({ pacoteId: pacote.id, cursoId: e.target.value })
+                if (e.target.value) {
+                  setCursoError('')
+                  addCurso.mutate(
+                    { pacoteId: pacote.id, cursoId: e.target.value },
+                    { onError: (err) => setCursoError(err instanceof Error ? err.message : 'Erro ao adicionar curso') },
+                  )
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {showCategorias && (
+        <div className="border-t border-gray-100 pt-3 space-y-2">
+          {pacote.pacote_categorias.map((pc) => (
+            <div key={pc.categoria_id} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
+                <Tags className="h-3.5 w-3.5 text-gray-400" />
+                <span className="text-gray-700">{pc.categorias?.nome ?? pc.categoria_id}</span>
+              </div>
+              <button
+                onClick={() => removeCategoria.mutate({ pacoteId: pacote.id, categoriaId: pc.categoria_id })}
+                className="text-gray-400 hover:text-red-600"
+              ><X className="h-3.5 w-3.5" /></button>
+            </div>
+          ))}
+          {availableCategorias.length > 0 && (
+            <Select
+              placeholder="Adicionar categoria..."
+              options={availableCategorias.map((c) => ({ value: c.id, label: c.nome }))}
+              value=""
+              onChange={(e) => {
+                if (e.target.value) addCategoria.mutate({ pacoteId: pacote.id, categoriaId: e.target.value })
               }}
             />
           )}

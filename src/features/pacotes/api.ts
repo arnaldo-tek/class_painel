@@ -5,12 +5,13 @@ export type Pacote = Tables<'pacotes'>
 
 export type PacoteWithRelations = Pacote & {
   pacote_cursos: { curso_id: string; cursos: { nome: string } | null }[]
+  pacote_categorias: { categoria_id: string; categorias: { id: string; nome: string } | null }[]
 }
 
 export async function fetchPacotes() {
   const { data, error } = await supabase
     .from('pacotes')
-    .select('*, pacote_cursos(curso_id, cursos(nome))')
+    .select('*, pacote_cursos(curso_id, cursos(nome)), pacote_categorias(categoria_id, categorias(id, nome))')
     .order('created_at', { ascending: false })
 
   if (error) throw error
@@ -20,7 +21,7 @@ export async function fetchPacotes() {
 export async function fetchPacote(id: string) {
   const { data, error } = await supabase
     .from('pacotes')
-    .select('*, pacote_cursos(curso_id, cursos(nome))')
+    .select('*, pacote_cursos(curso_id, cursos(nome)), pacote_categorias(categoria_id, categorias(id, nome))')
     .eq('id', id)
     .single()
 
@@ -57,6 +58,20 @@ export async function deletePacote(id: string) {
 }
 
 export async function addCursoToPacote(pacoteId: string, cursoId: string) {
+  // Check if course professor has Pagar.me receiver_id
+  const { data: curso } = await supabase
+    .from('cursos')
+    .select('professor_id, professor_profiles!cursos_professor_id_fkey(pagarme_receiver_id, nome_professor)')
+    .eq('id', cursoId)
+    .single()
+
+  const prof = curso?.professor_profiles as unknown as { pagarme_receiver_id: string | null; nome_professor: string } | null
+  if (!prof?.pagarme_receiver_id) {
+    throw new Error(
+      `O professor "${prof?.nome_professor ?? 'desconhecido'}" não possui conta cadastrada no Pagar.me. Configure os dados bancários do professor antes de adicioná-lo a um pacote.`
+    )
+  }
+
   const { error } = await supabase
     .from('pacote_cursos')
     .insert({ pacote_id: pacoteId, curso_id: cursoId })
@@ -69,6 +84,22 @@ export async function removeCursoFromPacote(pacoteId: string, cursoId: string) {
     .delete()
     .eq('pacote_id', pacoteId)
     .eq('curso_id', cursoId)
+  if (error) throw error
+}
+
+export async function addCategoriaToPacote(pacoteId: string, categoriaId: string) {
+  const { error } = await supabase
+    .from('pacote_categorias')
+    .insert({ pacote_id: pacoteId, categoria_id: categoriaId })
+  if (error) throw error
+}
+
+export async function removeCategoriaFromPacote(pacoteId: string, categoriaId: string) {
+  const { error } = await supabase
+    .from('pacote_categorias')
+    .delete()
+    .eq('pacote_id', pacoteId)
+    .eq('categoria_id', categoriaId)
   if (error) throw error
 }
 

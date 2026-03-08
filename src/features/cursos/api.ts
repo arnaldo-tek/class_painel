@@ -163,6 +163,7 @@ export async function fetchProfessores() {
     .from('professor_profiles')
     .select('id, nome_professor, user_id')
     .eq('approval_status', 'aprovado')
+    .is('deleted_at', null)
     .order('nome_professor')
 
   if (error) throw error

@@ -24,18 +24,36 @@ export async function fetchAlunos(search?: string, page = 1, perPage = 20) {
     .select('id, email, display_name, phone_number, cpf, is_suspended, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
 
-  // Only show users who have 'aluno' role but NOT 'admin' or 'professor'
+  // Only show users who have 'aluno' role but NOT 'admin' or active 'professor'
   const { data: alunoRoles } = await supabase
     .from('user_roles')
     .select('user_id')
     .eq('role', 'aluno')
 
-  const { data: nonAlunoRoles } = await supabase
+  const { data: adminRoles } = await supabase
     .from('user_roles')
     .select('user_id')
-    .in('role', ['admin', 'professor'])
+    .eq('role', 'admin')
 
-  const excludeIds = new Set((nonAlunoRoles ?? []).map((r) => r.user_id))
+  const { data: professorRoles } = await supabase
+    .from('user_roles')
+    .select('user_id')
+    .eq('role', 'professor')
+
+  // Exclude admins always; exclude professors only if not soft-deleted
+  const excludeIds = new Set((adminRoles ?? []).map((r) => r.user_id))
+  if (professorRoles && professorRoles.length > 0) {
+    const profUserIds = professorRoles.map((r) => r.user_id)
+    const { data: activeProfs } = await supabase
+      .from('professor_profiles')
+      .select('user_id')
+      .in('user_id', profUserIds)
+      .is('deleted_at', null)
+    for (const p of activeProfs ?? []) {
+      excludeIds.add(p.user_id)
+    }
+  }
+
   const alunoIds = (alunoRoles ?? []).map((r) => r.user_id).filter((id) => !excludeIds.has(id))
   if (alunoIds.length === 0) return { alunos: [] as Aluno[], total: 0, totalPages: 0 }
 

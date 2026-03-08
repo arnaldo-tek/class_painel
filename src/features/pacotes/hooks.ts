@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   fetchPacotes, fetchPacote, createPacote, updatePacote, deletePacote,
-  addCursoToPacote, removeCursoFromPacote, fetchAllCursos,
+  addCursoToPacote, removeCursoFromPacote, addCategoriaToPacote, removeCategoriaFromPacote, fetchAllCursos,
 } from './api'
 
 export function usePacotes() {
@@ -65,6 +65,30 @@ export function useRemoveCursoFromPacote() {
   return useMutation({
     mutationFn: ({ pacoteId, cursoId }: { pacoteId: string; cursoId: string }) =>
       removeCursoFromPacote(pacoteId, cursoId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pacotes'] })
+      qc.invalidateQueries({ queryKey: ['pacote'] })
+    },
+  })
+}
+
+export function useAddCategoriaToPacote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ pacoteId, categoriaId }: { pacoteId: string; categoriaId: string }) =>
+      addCategoriaToPacote(pacoteId, categoriaId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pacotes'] })
+      qc.invalidateQueries({ queryKey: ['pacote'] })
+    },
+  })
+}
+
+export function useRemoveCategoriaFromPacote() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ pacoteId, categoriaId }: { pacoteId: string; categoriaId: string }) =>
+      removeCategoriaFromPacote(pacoteId, categoriaId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pacotes'] })
       qc.invalidateQueries({ queryKey: ['pacote'] })
