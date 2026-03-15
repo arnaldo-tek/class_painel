@@ -19,10 +19,10 @@ BEGIN
   );
   -- Só atribui 'aluno' se não veio com role específico no metadata
   IF NEW.raw_user_meta_data->>'role' IS NULL THEN
-    INSERT INTO public.user_roles (user_id, role) VALUES (NEW.id, 'aluno');
+    INSERT INTO public.user_roles (user_id, role) VALUES (NEW.id, 'aluno'::public.user_role);
   ELSE
     INSERT INTO public.user_roles (user_id, role)
-    VALUES (NEW.id, (NEW.raw_user_meta_data->>'role')::user_role);
+    VALUES (NEW.id, (NEW.raw_user_meta_data->>'role')::public.user_role);
   END IF;
   RETURN NEW;
 END;

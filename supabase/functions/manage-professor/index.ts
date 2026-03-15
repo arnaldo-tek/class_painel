@@ -52,11 +52,7 @@ Deno.serve(async (req) => {
       }
 
       const userId = newUser.user.id
-
-      const { error: roleErr } = await admin
-        .from('user_roles')
-        .insert({ user_id: userId, role: 'professor' })
-      if (roleErr) throw roleErr
+      // Note: trigger handle_new_user já insere profile + user_role 'professor'
 
       const profileData: Record<string, unknown> = {
         user_id: userId,
