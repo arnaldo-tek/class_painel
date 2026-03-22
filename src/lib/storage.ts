@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 // Supabase storage upload limit (adjust after upgrading plan)
 const MAX_VIDEO_SIZE_MB = 500
 const MAX_OTHER_SIZE_MB = 50
-const MAX_VIDEO_DURATION_SECONDS = 120 * 60 // 120 minutos
+const MAX_VIDEO_DURATION_SECONDS = 30 * 60 // 30 minutos
 
 /**
  * Upload a file to Supabase Storage.
@@ -25,7 +25,10 @@ export async function uploadFile(
   }
 
   if (isVideo) {
-    const duration = await getVideoDuration(file)
+    const duration = await getVideoDuration(file).catch(() => NaN)
+    if (!Number.isFinite(duration)) {
+      throw new Error('Não foi possível verificar a duração do vídeo. Certifique-se de que é um arquivo MP4 válido e tente novamente.')
+    }
     if (duration > MAX_VIDEO_DURATION_SECONDS) {
       const mins = Math.ceil(duration / 60)
       throw new Error(`O vídeo tem ${mins} minutos. O máximo permitido é 30 minutos.`)

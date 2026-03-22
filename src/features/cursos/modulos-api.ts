@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { deleteFile } from '@/lib/storage'
 import type { Tables } from '@/types/database'
 
 export type Modulo = Tables<'modulos'>
@@ -99,6 +100,13 @@ export async function createAula(aula: {
 }
 
 export async function updateAula(id: string, updates: Partial<Aula>) {
+  if ('video_url' in updates) {
+    const { data: old } = await supabase.from('aulas').select('video_url').eq('id', id).single()
+    if (old?.video_url && old.video_url !== updates.video_url) {
+      await deleteFile('aulas', old.video_url).catch(() => {})
+    }
+  }
+
   const { data, error } = await supabase
     .from('aulas')
     .update(updates)
@@ -111,6 +119,19 @@ export async function updateAula(id: string, updates: Partial<Aula>) {
 }
 
 export async function deleteAula(id: string) {
+  const { data: aula } = await supabase.from('aulas').select('video_url, pdf, imagem_capa, imagem_perfil').eq('id', id).single()
+  const { data: audios } = await supabase.from('audios_da_aula').select('audio_url').eq('aula_id', id)
+
+  const urls: string[] = [
+    aula?.video_url,
+    aula?.pdf,
+    aula?.imagem_capa,
+    aula?.imagem_perfil,
+    ...(audios ?? []).map((a) => a.audio_url),
+  ].filter(Boolean) as string[]
+
+  await Promise.allSettled(urls.map((url) => deleteFile('aulas', url)))
+
   const { error } = await supabase.from('aulas').delete().eq('id', id)
   if (error) throw error
 }
@@ -194,6 +215,9 @@ export async function createAudioAula(audio: {
 }
 
 export async function deleteAudioAula(id: string) {
+  const { data: audio } = await supabase.from('audios_da_aula').select('audio_url').eq('id', id).single()
+  if (audio?.audio_url) await deleteFile('aulas', audio.audio_url).catch(() => {})
+
   const { error } = await supabase.from('audios_da_aula').delete().eq('id', id)
   if (error) throw error
 }
