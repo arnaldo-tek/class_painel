@@ -1,9 +1,9 @@
 import { supabase } from './supabase'
 
 // Supabase storage upload limit (adjust after upgrading plan)
-const MAX_VIDEO_SIZE_MB = 50
+const MAX_VIDEO_SIZE_MB = 500
 const MAX_OTHER_SIZE_MB = 50
-const MAX_VIDEO_DURATION_SECONDS = 30 * 60 // 30 minutos
+const MAX_VIDEO_DURATION_SECONDS = 120 * 60 // 120 minutos
 
 /**
  * Upload a file to Supabase Storage.
@@ -79,6 +79,7 @@ function uploadWithProgress(
       xhr.setRequestHeader('apikey', supabaseKey)
       xhr.setRequestHeader('x-upsert', 'false')
       xhr.setRequestHeader('cache-control', '3600')
+      xhr.setRequestHeader('Content-Type', file.type || 'video/mp4')
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
