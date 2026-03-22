@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 // Supabase storage upload limit (adjust after upgrading plan)
-const MAX_VIDEO_SIZE_MB = 500
+const MAX_VIDEO_SIZE_MB = 1024
 const MAX_OTHER_SIZE_MB = 50
 const MAX_VIDEO_DURATION_SECONDS = 30 * 60 // 30 minutos
 
