@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.1"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       active_sessions: {
@@ -877,6 +902,7 @@ export type Database = {
           is_mentoria: boolean | null
           is_pacote: boolean | null
           is_publicado: boolean | null
+          nivel_id: string | null
           nome: string
           orgao: string | null
           preco: number | null
@@ -902,6 +928,7 @@ export type Database = {
           is_mentoria?: boolean | null
           is_pacote?: boolean | null
           is_publicado?: boolean | null
+          nivel_id?: string | null
           nome: string
           orgao?: string | null
           preco?: number | null
@@ -927,6 +954,7 @@ export type Database = {
           is_mentoria?: boolean | null
           is_pacote?: boolean | null
           is_publicado?: boolean | null
+          nivel_id?: string | null
           nome?: string
           orgao?: string | null
           preco?: number | null
@@ -948,6 +976,13 @@ export type Database = {
             columns: ["disciplina_id"]
             isOneToOne: false
             referencedRelation: "disciplinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cursos_nivel_id_fkey"
+            columns: ["nivel_id"]
+            isOneToOne: false
+            referencedRelation: "niveis"
             referencedColumns: ["id"]
           },
           {
@@ -1095,8 +1130,10 @@ export type Database = {
           descricao: string | null
           disciplina: string | null
           estado: string | null
+          estado_id: string | null
           id: string
           imagem: string | null
+          municipio_id: string | null
           orgao: string | null
           pdf: string | null
           professor_id: string | null
@@ -1111,8 +1148,10 @@ export type Database = {
           descricao?: string | null
           disciplina?: string | null
           estado?: string | null
+          estado_id?: string | null
           id?: string
           imagem?: string | null
+          municipio_id?: string | null
           orgao?: string | null
           pdf?: string | null
           professor_id?: string | null
@@ -1127,8 +1166,10 @@ export type Database = {
           descricao?: string | null
           disciplina?: string | null
           estado?: string | null
+          estado_id?: string | null
           id?: string
           imagem?: string | null
+          municipio_id?: string | null
           orgao?: string | null
           pdf?: string | null
           professor_id?: string | null
@@ -1141,6 +1182,20 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "editais_estado_id_fkey"
+            columns: ["estado_id"]
+            isOneToOne: false
+            referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "editais_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
             referencedColumns: ["id"]
           },
           {
@@ -1830,8 +1885,10 @@ export type Database = {
           descricao: string | null
           disciplina: string | null
           estado: string | null
+          estado_id: string | null
           id: string
           imagem: string | null
+          municipio_id: string | null
           orgao: string | null
           pdf: string | null
           titulo: string
@@ -1844,8 +1901,10 @@ export type Database = {
           descricao?: string | null
           disciplina?: string | null
           estado?: string | null
+          estado_id?: string | null
           id?: string
           imagem?: string | null
+          municipio_id?: string | null
           orgao?: string | null
           pdf?: string | null
           titulo: string
@@ -1858,8 +1917,10 @@ export type Database = {
           descricao?: string | null
           disciplina?: string | null
           estado?: string | null
+          estado_id?: string | null
           id?: string
           imagem?: string | null
+          municipio_id?: string | null
           orgao?: string | null
           pdf?: string | null
           titulo?: string
@@ -1870,6 +1931,20 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "noticias_estado_id_fkey"
+            columns: ["estado_id"]
+            isOneToOne: false
+            referencedRelation: "estados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "noticias_municipio_id_fkey"
+            columns: ["municipio_id"]
+            isOneToOne: false
+            referencedRelation: "municipios"
             referencedColumns: ["id"]
           },
         ]
@@ -2130,27 +2205,42 @@ export type Database = {
       }
       pacotes: {
         Row: {
+          cargo: string | null
+          cidade: string | null
           created_at: string | null
           descricao: string | null
+          disciplina: string | null
+          estado: string | null
           id: string
           imagem: string | null
           nome: string
+          orgao: string | null
           preco: number | null
         }
         Insert: {
+          cargo?: string | null
+          cidade?: string | null
           created_at?: string | null
           descricao?: string | null
+          disciplina?: string | null
+          estado?: string | null
           id?: string
           imagem?: string | null
           nome: string
+          orgao?: string | null
           preco?: number | null
         }
         Update: {
+          cargo?: string | null
+          cidade?: string | null
           created_at?: string | null
           descricao?: string | null
+          disciplina?: string | null
+          estado?: string | null
           id?: string
           imagem?: string | null
           nome?: string
+          orgao?: string | null
           preco?: number | null
         }
         Relationships: []
@@ -2240,18 +2330,18 @@ export type Database = {
       platform_settings: {
         Row: {
           key: string
-          value: string
           updated_at: string | null
+          value: string
         }
         Insert: {
           key: string
-          value: string
           updated_at?: string | null
+          value: string
         }
         Update: {
           key?: string
-          value?: string
           updated_at?: string | null
+          value?: string
         }
         Relationships: []
       }
@@ -2323,6 +2413,7 @@ export type Database = {
           facebook: string | null
           foto_capa: string | null
           foto_perfil: string | null
+          fotos_destaque: Json | null
           id: string
           imagens_capa: string[] | null
           instagram: string | null
@@ -2369,6 +2460,7 @@ export type Database = {
           facebook?: string | null
           foto_capa?: string | null
           foto_perfil?: string | null
+          fotos_destaque?: Json | null
           id?: string
           imagens_capa?: string[] | null
           instagram?: string | null
@@ -2415,6 +2507,7 @@ export type Database = {
           facebook?: string | null
           foto_capa?: string | null
           foto_perfil?: string | null
+          fotos_destaque?: Json | null
           id?: string
           imagens_capa?: string[] | null
           instagram?: string | null
@@ -2450,6 +2543,7 @@ export type Database = {
       profiles: {
         Row: {
           agencia: string | null
+          apelido_comunidade: string | null
           banco: string | null
           cep: string | null
           chave_pix: string | null
@@ -2477,6 +2571,7 @@ export type Database = {
         }
         Insert: {
           agencia?: string | null
+          apelido_comunidade?: string | null
           banco?: string | null
           cep?: string | null
           chave_pix?: string | null
@@ -2504,6 +2599,7 @@ export type Database = {
         }
         Update: {
           agencia?: string | null
+          apelido_comunidade?: string | null
           banco?: string | null
           cep?: string | null
           chave_pix?: string | null
@@ -2689,6 +2785,7 @@ export type Database = {
           lei_id: string
           pergunta: string
           resposta: string
+          resposta_escrita: string | null
           video: string | null
         }
         Insert: {
@@ -2697,6 +2794,7 @@ export type Database = {
           lei_id: string
           pergunta: string
           resposta: string
+          resposta_escrita?: string | null
           video?: string | null
         }
         Update: {
@@ -2705,6 +2803,7 @@ export type Database = {
           lei_id?: string
           pergunta?: string
           resposta?: string
+          resposta_escrita?: string | null
           video?: string | null
         }
         Relationships: [
@@ -3022,6 +3121,7 @@ export type Database = {
         Row: {
           created_at: string | null
           descricao: string | null
+          destinatario: string | null
           id: string
           pdf: string | null
           tipo_tutorial: string | null
@@ -3031,6 +3131,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           descricao?: string | null
+          destinatario?: string | null
           id?: string
           pdf?: string | null
           tipo_tutorial?: string | null
@@ -3040,6 +3141,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           descricao?: string | null
+          destinatario?: string | null
           id?: string
           pdf?: string | null
           tipo_tutorial?: string | null
@@ -3285,6 +3387,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       approval_status: ["em_analise", "aprovado", "reprovado"],

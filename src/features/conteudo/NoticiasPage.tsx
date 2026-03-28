@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Newspaper, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useNoticias, useCreateNoticia, useUpdateNoticia, useDeleteNoticia } from './noticias-hooks'
 import { useCategorias } from '@/features/categorias/hooks'
-import { useCategoria as useCategoriaFiltros, useEstados, useMunicipios, useOrgaos } from '@/features/cursos/filtros-hooks'
+import { useCategoria as useCategoriaFiltros, useEstados, useMunicipios, useOrgaos, useCargos, useDisciplinas } from '@/features/cursos/filtros-hooks'
 import { uploadFile } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -116,9 +116,13 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
   const [titulo, setTitulo] = useState(editing?.titulo ?? '')
   const [descricao, setDescricao] = useState(editing?.descricao ?? '')
   const [categoriaId, setCategoriaId] = useState(editing?.categoria_id ?? '')
-  const [estadoId, setEstadoId] = useState(editing?.estado_id ?? '')
-  const [municipioId, setMunicipioId] = useState(editing?.municipio_id ?? '')
-  const [orgaoId, setOrgaoId] = useState(editing?.orgao ?? '')
+  const [estadoId, setEstadoId] = useState(editing?.estado ? '' : '')
+  const [estadoNome, setEstadoNome] = useState(editing?.estado ?? '')
+  const [municipioId, setMunicipioId] = useState('')
+  const [cidadeNome, setCidadeNome] = useState(editing?.cidade ?? '')
+  const [orgaoNome, setOrgaoNome] = useState(editing?.orgao ?? '')
+  const [cargoNome, setCargoNome] = useState(editing?.cargo ?? '')
+  const [disciplinaNome, setDisciplinaNome] = useState(editing?.disciplina ?? '')
   const [imagem, setImagem] = useState<string | null>(editing?.imagem ?? null)
   const [error, setError] = useState('')
 
@@ -130,10 +134,14 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
   const showEstado = categoriaFiltros?.filtro_estado ?? false
   const showCidade = categoriaFiltros?.filtro_cidade ?? false
   const showOrgao = categoriaFiltros?.filtro_orgao_editais_noticias ?? false
+  const showCargo = categoriaFiltros?.filtro_cargo ?? false
+  const showDisciplina = categoriaFiltros?.filtro_disciplina ?? false
 
   const { data: estados } = useEstados(showEstado)
   const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
   const { data: orgaos } = useOrgaos({ categoriaId: categoriaId || undefined, estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
+  const { data: cargos } = useCargos({ categoriaId: categoriaId || undefined }, showCargo)
+  const { data: disciplinas } = useDisciplinas({ categoriaId: categoriaId || undefined, estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showDisciplina)
 
   const createMutation = useCreateNoticia()
   const updateMutation = useUpdateNoticia()
@@ -142,14 +150,20 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
   function handleCategoriaChange(value: string) {
     setCategoriaId(value)
     setEstadoId('')
+    setEstadoNome('')
     setMunicipioId('')
-    setOrgaoId('')
+    setCidadeNome('')
+    setOrgaoNome('')
+    setCargoNome('')
+    setDisciplinaNome('')
   }
 
-  function handleEstadoChange(value: string) {
+  function handleEstadoChange(value: string, nome: string) {
     setEstadoId(value)
+    setEstadoNome(nome)
     setMunicipioId('')
-    setOrgaoId('')
+    setCidadeNome('')
+    setOrgaoNome('')
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -160,9 +174,11 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
         titulo: titulo.trim(),
         descricao: descricao.trim() || null,
         categoria_id: categoriaId || null,
-        estado_id: showEstado && estadoId ? estadoId : null,
-        municipio_id: showCidade && municipioId ? municipioId : null,
-        orgao: showOrgao && orgaoId ? orgaoId : null,
+        estado: showEstado && estadoNome ? estadoNome : null,
+        cidade: showCidade && cidadeNome ? cidadeNome : null,
+        orgao: showOrgao && orgaoNome ? orgaoNome : null,
+        cargo: showCargo && cargoNome ? cargoNome : null,
+        disciplina: showDisciplina && disciplinaNome ? disciplinaNome : null,
         imagem,
       }
       if (editing) {
@@ -229,7 +245,10 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
             placeholder="Selecionar estado"
             options={(estados ?? []).map((e: any) => ({ value: e.id, label: e.nome }))}
             value={estadoId}
-            onChange={(e) => handleEstadoChange(e.target.value)}
+            onChange={(e) => {
+              const selected = (estados ?? []).find((es: any) => es.id === e.target.value)
+              handleEstadoChange(e.target.value, selected?.nome ?? '')
+            }}
           />
         </div>
       )}
@@ -242,7 +261,11 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
             placeholder="Selecionar cidade"
             options={(municipios ?? []).map((m: any) => ({ value: m.id, label: m.nome }))}
             value={municipioId}
-            onChange={(e) => setMunicipioId(e.target.value)}
+            onChange={(e) => {
+              setMunicipioId(e.target.value)
+              const selected = (municipios ?? []).find((m: any) => m.id === e.target.value)
+              setCidadeNome(selected?.nome ?? '')
+            }}
           />
         </div>
       )}
@@ -254,8 +277,34 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
           <Select
             placeholder="Selecionar órgão"
             options={(orgaos ?? []).map((o: any) => ({ value: o.nome, label: o.nome }))}
-            value={orgaoId}
-            onChange={(e) => setOrgaoId(e.target.value)}
+            value={orgaoNome}
+            onChange={(e) => setOrgaoNome(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Cargo */}
+      {showCargo && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Cargo</label>
+          <Select
+            placeholder="Selecionar cargo"
+            options={(cargos ?? []).map((c: any) => ({ value: c.nome, label: c.nome }))}
+            value={cargoNome}
+            onChange={(e) => setCargoNome(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Disciplina */}
+      {showDisciplina && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Disciplina</label>
+          <Select
+            placeholder="Selecionar disciplina"
+            options={(disciplinas ?? []).map((d: any) => ({ value: d.nome, label: d.nome }))}
+            value={disciplinaNome}
+            onChange={(e) => setDisciplinaNome(e.target.value)}
           />
         </div>
       )}

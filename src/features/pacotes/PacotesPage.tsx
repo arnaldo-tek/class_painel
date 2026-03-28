@@ -6,6 +6,7 @@ import {
   useAddCategoriaToPacote, useRemoveCategoriaFromPacote,
 } from './hooks'
 import { useCategorias } from '../categorias/hooks'
+import { useCategoria as useCategoriaFiltros, useEstados, useMunicipios, useOrgaos, useCargos, useDisciplinas } from '@/features/cursos/filtros-hooks'
 import type { PacoteWithRelations } from './api'
 import { uploadFile } from '@/lib/storage'
 import { Button } from '@/components/ui/button'
@@ -101,19 +102,55 @@ function PacoteForm({
   const [selectedCategorias, setSelectedCategorias] = useState<string[]>(
     () => existing?.pacote_categorias.map((pc) => pc.categoria_id) ?? []
   )
+  const [estadoId, setEstadoId] = useState('')
+  const [estadoNome, setEstadoNome] = useState(existing?.estado ?? '')
+  const [municipioId, setMunicipioId] = useState('')
+  const [cidadeNome, setCidadeNome] = useState(existing?.cidade ?? '')
+  const [orgaoNome, setOrgaoNome] = useState(existing?.orgao ?? '')
+  const [cargoNome, setCargoNome] = useState(existing?.cargo ?? '')
+  const [disciplinaNome, setDisciplinaNome] = useState(existing?.disciplina ?? '')
   const [error, setError] = useState('')
 
   const { data: categoriasData } = useCategorias('pacote')
+
+  // Cascading filters based on category flags
+  const activeCategoriaId = selectedCategorias[0] || undefined
+  const { data: categoriaFiltros } = useCategoriaFiltros(activeCategoriaId)
+  const showEstado = categoriaFiltros?.filtro_estado ?? false
+  const showCidade = categoriaFiltros?.filtro_cidade ?? false
+  const showOrgao = categoriaFiltros?.filtro_orgao ?? false
+  const showCargo = categoriaFiltros?.filtro_cargo ?? false
+  const showDisciplina = categoriaFiltros?.filtro_disciplina ?? false
+
+  const { data: estados } = useEstados(showEstado)
+  const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
+  const { data: orgaos } = useOrgaos({ categoriaId: activeCategoriaId, estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
+  const { data: cargos } = useCargos({ categoriaId: activeCategoriaId }, showCargo)
+  const { data: disciplinas } = useDisciplinas({ categoriaId: activeCategoriaId, estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showDisciplina)
+
   const createMutation = useCreatePacote()
   const updateMutation = useUpdatePacote()
   const addCategoria = useAddCategoriaToPacote()
   const removeCategoria = useRemoveCategoriaFromPacote()
   const isSaving = createMutation.isPending || updateMutation.isPending
 
-  function toggleCategoria(id: string) {
-    setSelectedCategorias((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    )
+  function handleCategoriaChange(value: string) {
+    setSelectedCategorias(value ? [value] : [])
+    setEstadoId('')
+    setEstadoNome('')
+    setMunicipioId('')
+    setCidadeNome('')
+    setOrgaoNome('')
+    setCargoNome('')
+    setDisciplinaNome('')
+  }
+
+  function handleEstadoChange(value: string, nome: string) {
+    setEstadoId(value)
+    setEstadoNome(nome)
+    setMunicipioId('')
+    setCidadeNome('')
+    setOrgaoNome('')
   }
 
   async function syncCategorias(pacoteId: string, originalIds: string[]) {
@@ -134,6 +171,11 @@ function PacoteForm({
         descricao: descricao.trim() || null,
         preco: preco ? parseFloat(preco) : 0,
         imagem,
+        estado: showEstado && estadoNome ? estadoNome : null,
+        cidade: showCidade && cidadeNome ? cidadeNome : null,
+        orgao: showOrgao && orgaoNome ? orgaoNome : null,
+        cargo: showCargo && cargoNome ? cargoNome : null,
+        disciplina: showDisciplina && disciplinaNome ? disciplinaNome : null,
       }
       if (editingId) {
         await updateMutation.mutateAsync({ id: editingId, ...payload })
@@ -188,7 +230,79 @@ function PacoteForm({
             placeholder="Selecione a categoria"
             options={categorias.map((c) => ({ value: c.id, label: c.nome }))}
             value={selectedCategorias[0] ?? ''}
-            onChange={(e) => setSelectedCategorias(e.target.value ? [e.target.value] : [])}
+            onChange={(e) => handleCategoriaChange(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Estado */}
+      {showEstado && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Estado</label>
+          <Select
+            placeholder="Selecionar estado"
+            options={(estados ?? []).map((e: any) => ({ value: e.id, label: e.nome }))}
+            value={estadoId}
+            onChange={(e) => {
+              const selected = (estados ?? []).find((es: any) => es.id === e.target.value)
+              handleEstadoChange(e.target.value, selected?.nome ?? '')
+            }}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Cidade */}
+      {showCidade && estadoId && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Cidade</label>
+          <Select
+            placeholder="Selecionar cidade"
+            options={(municipios ?? []).map((m: any) => ({ value: m.id, label: m.nome }))}
+            value={municipioId}
+            onChange={(e) => {
+              setMunicipioId(e.target.value)
+              const selected = (municipios ?? []).find((m: any) => m.id === e.target.value)
+              setCidadeNome(selected?.nome ?? '')
+            }}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Órgão */}
+      {showOrgao && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Órgão</label>
+          <Select
+            placeholder="Selecionar órgão"
+            options={(orgaos ?? []).map((o: any) => ({ value: o.nome, label: o.nome }))}
+            value={orgaoNome}
+            onChange={(e) => setOrgaoNome(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Cargo */}
+      {showCargo && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Cargo</label>
+          <Select
+            placeholder="Selecionar cargo"
+            options={(cargos ?? []).map((c: any) => ({ value: c.nome, label: c.nome }))}
+            value={cargoNome}
+            onChange={(e) => setCargoNome(e.target.value)}
+          />
+        </div>
+      )}
+
+      {/* Filtros cascata - Disciplina */}
+      {showDisciplina && (
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Disciplina</label>
+          <Select
+            placeholder="Selecionar disciplina"
+            options={(disciplinas ?? []).map((d: any) => ({ value: d.nome, label: d.nome }))}
+            value={disciplinaNome}
+            onChange={(e) => setDisciplinaNome(e.target.value)}
           />
         </div>
       )}

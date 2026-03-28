@@ -1,15 +1,19 @@
 import { forwardRef, type SelectHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
+export interface SelectOption { value: string; label: string }
+export interface SelectOptionGroup { label: string; options: SelectOption[] }
+
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string
   error?: string
-  options: { value: string; label: string }[]
+  options: SelectOption[]
+  groups?: SelectOptionGroup[]
   placeholder?: string
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, id, options, placeholder, ...props }, ref) => {
+  ({ className, label, error, id, options, groups, placeholder, ...props }, ref) => {
     return (
       <div className="space-y-1">
         {label && (
@@ -30,11 +34,21 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           {placeholder && (
             <option value="">{placeholder}</option>
           )}
-          {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
+          {groups
+            ? groups.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))
+            : options.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
         </select>
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>

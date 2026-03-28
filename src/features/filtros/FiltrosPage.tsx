@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { SlidersHorizontal, Plus, Pencil, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { Select, type SelectOptionGroup } from '@/components/ui/select'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Pagination } from '@/components/ui/pagination'
 import { useCategorias } from '@/features/categorias/hooks'
@@ -95,6 +95,26 @@ function ExtraFields({ fields }: { fields: { label: string; value: string | null
 
 function idOptions(items: { id: string; nome: string }[]) {
   return items.map((i) => ({ value: i.id, label: i.nome }))
+}
+
+const TIPO_LABELS: Record<string, string> = {
+  curso: 'Cursos',
+  noticia: 'Notícias',
+  edital: 'Editais',
+  pacote: 'Pacotes',
+}
+
+function categoriaGroups(categorias: { id: string; nome: string; tipo: string }[]): SelectOptionGroup[] {
+  const grouped = new Map<string, { value: string; label: string }[]>()
+  for (const c of categorias) {
+    const key = c.tipo
+    if (!grouped.has(key)) grouped.set(key, [])
+    grouped.get(key)!.push({ value: c.id, label: c.nome })
+  }
+  return Array.from(grouped.entries()).map(([tipo, options]) => ({
+    label: TIPO_LABELS[tipo] ?? tipo,
+    options,
+  }))
 }
 
 // ─── Estados (somente leitura) ──────────────────────────────────────
@@ -253,7 +273,7 @@ function OrgaosPanel() {
   const [filterCategoriaId, setFilterCategoriaId] = useState('')
   const [error, setError] = useState('')
 
-  const { data: categoriasData } = useCategorias('curso')
+  const { data: categoriasData } = useCategorias()
   const { data: esferasData } = useEsferas()
   const { data: estadosData } = useEstados()
   const { data: cidadesData } = useMunicipiosByEstado(estadoId || undefined)
@@ -263,7 +283,9 @@ function OrgaosPanel() {
   const updateMut = useUpdateOrgao()
   const deleteMut = useDeleteOrgao()
 
-  const categoriaOpts = idOptions(categoriasData?.categorias ?? [])
+  const allCategorias = (categoriasData?.categorias ?? []) as { id: string; nome: string; tipo: string }[]
+  const categoriaOpts = idOptions(allCategorias)
+  const categoriaGrps = categoriaGroups(allCategorias)
   const esferaOpts = idOptions(esferasData?.items ?? [])
   const estadoOpts = idOptions(estadosData?.items ?? [])
   const cidadeOpts = idOptions(cidadesData ?? [])
@@ -340,7 +362,7 @@ function OrgaosPanel() {
           </div>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select label="Categoria" placeholder="Selecione a categoria" options={categoriaOpts} value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} />
+              <Select label="Categoria" placeholder="Selecione a categoria" options={[]} groups={categoriaGrps} value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} />
               <Select label="Esfera" placeholder="Selecione a esfera" options={esferaOpts} value={esferaId} onChange={(e) => handleEsferaChange(e.target.value)} />
               {showEstado && (
                 <Select label="Estado" placeholder="Selecione o estado" options={estadoOpts} value={estadoId} onChange={(e) => handleEstadoChange(e.target.value)} />
@@ -364,7 +386,8 @@ function OrgaosPanel() {
         <Select
           label="Filtrar por categoria"
           placeholder="Todas as categorias"
-          options={categoriaOpts}
+          options={[]}
+          groups={categoriaGrps}
           value={filterCategoriaId}
           onChange={(e) => setFilterCategoriaId(e.target.value)}
         />
@@ -412,7 +435,7 @@ function CargosPanel() {
   const [municipioId, setMunicipioId] = useState('')
   const [error, setError] = useState('')
 
-  const { data: categoriasData } = useCategorias('curso')
+  const { data: categoriasData } = useCategorias()
   const { data: esferasData } = useEsferas()
   const { data: estadosData } = useEstados()
   const { data: cidadesData } = useMunicipiosByEstado(estadoId || undefined)
@@ -423,7 +446,9 @@ function CargosPanel() {
   const updateMut = useUpdateCargo()
   const deleteMut = useDeleteCargo()
 
-  const categoriaOpts = idOptions(categoriasData?.categorias ?? [])
+  const allCategorias = (categoriasData?.categorias ?? []) as { id: string; nome: string; tipo: string }[]
+  const categoriaOpts = idOptions(allCategorias)
+  const categoriaGrps = categoriaGroups(allCategorias)
   const esferaOpts = idOptions(esferasData?.items ?? [])
   const estadoOpts = idOptions(estadosData?.items ?? [])
   const cidadeOpts = idOptions(cidadesData ?? [])
@@ -499,7 +524,7 @@ function CargosPanel() {
           </div>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select label="Categoria" placeholder="Selecione a categoria" options={categoriaOpts} value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setOrgaoId('') }} />
+              <Select label="Categoria" placeholder="Selecione a categoria" options={[]} groups={categoriaGrps} value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setOrgaoId('') }} />
               <Select label="Esfera" placeholder="Selecione a esfera (filtro)" options={esferaOpts} value={esferaId} onChange={(e) => handleEsferaChange(e.target.value)} />
               {showEstado && (
                 <Select label="Estado" placeholder="Selecione o estado" options={estadoOpts} value={estadoId} onChange={(e) => handleEstadoChange(e.target.value)} />
@@ -559,7 +584,7 @@ function DisciplinasPanel() {
   const [cargoId, setCargoId] = useState('')
   const [error, setError] = useState('')
 
-  const { data: categoriasData } = useCategorias('curso')
+  const { data: categoriasData } = useCategorias()
   const { data: esferasData } = useEsferas()
   const { data: estadosData } = useEstados()
   const { data: cidadesData } = useMunicipiosByEstado(estadoId || undefined)
@@ -570,8 +595,9 @@ function DisciplinasPanel() {
   const updateMut = useUpdateDisciplina()
   const deleteMut = useDeleteDisciplina()
 
-  const categorias = categoriasData?.categorias ?? []
+  const categorias = (categoriasData?.categorias ?? []) as { id: string; nome: string; tipo: string; [k: string]: any }[]
   const categoriaOpts = idOptions(categorias)
+  const categoriaGrps = categoriaGroups(categorias)
   const esferaOpts = idOptions(esferasData?.items ?? [])
   const estadoOpts = idOptions(estadosData?.items ?? [])
   const cidadeOpts = idOptions(cidadesData ?? [])
@@ -651,7 +677,7 @@ function DisciplinasPanel() {
           </div>
           <form onSubmit={handleSubmit} className="space-y-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Select label="Categoria" placeholder="Selecione a categoria" options={categoriaOpts} value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setOrgaoId(''); setCargoId('') }} />
+              <Select label="Categoria" placeholder="Selecione a categoria" options={[]} groups={categoriaGrps} value={categoriaId} onChange={(e) => { setCategoriaId(e.target.value); setOrgaoId(''); setCargoId('') }} />
               <Select label="Esfera" placeholder="Selecione a esfera" options={esferaOpts} value={esferaId} onChange={(e) => setEsferaId(e.target.value)} />
               {showEstado && (
                 <Select label="Estado" placeholder="Selecione o estado" options={estadoOpts} value={estadoId} onChange={(e) => handleEstadoChange(e.target.value)} />
