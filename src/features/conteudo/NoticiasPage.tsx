@@ -141,7 +141,7 @@ function NoticiaForm({ editing, onClose }: { editing?: any; onClose: () => void 
   const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
   const { data: orgaos } = useOrgaos({ estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
   const { data: cargos } = useCargos({}, showCargo)
-  const { data: disciplinas } = useDisciplinas({ estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showDisciplina)
+  const { data: disciplinas } = useDisciplinas({}, showDisciplina)
 
   const createMutation = useCreateNoticia()
   const updateMutation = useUpdateNoticia()
