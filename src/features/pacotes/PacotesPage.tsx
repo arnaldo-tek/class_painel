@@ -124,9 +124,9 @@ function PacoteForm({
 
   const { data: estados } = useEstados(showEstado)
   const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
-  const { data: orgaos } = useOrgaos({ categoriaId: activeCategoriaId, estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
-  const { data: cargos } = useCargos({ categoriaId: activeCategoriaId }, showCargo)
-  const { data: disciplinas } = useDisciplinas({ categoriaId: activeCategoriaId, estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showDisciplina)
+  const { data: orgaos } = useOrgaos({ estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
+  const { data: cargos } = useCargos({}, showCargo)
+  const { data: disciplinas } = useDisciplinas({ estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showDisciplina)
 
   const createMutation = useCreatePacote()
   const updateMutation = useUpdatePacote()
