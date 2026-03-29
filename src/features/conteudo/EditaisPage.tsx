@@ -122,6 +122,7 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
   const [municipioId, setMunicipioId] = useState('')
   const [cidadeNome, setCidadeNome] = useState(editing?.cidade ?? '')
   const [orgaoNome, setOrgaoNome] = useState(editing?.orgao ?? '')
+  const [cargoId, setCargoId] = useState('')
   const [cargoNome, setCargoNome] = useState(editing?.cargo ?? '')
   const [disciplinaNome, setDisciplinaNome] = useState(editing?.disciplina ?? '')
   const [imagem, setImagem] = useState<string | null>(editing?.imagem ?? null)
@@ -143,7 +144,7 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
   const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
   const { data: orgaos } = useOrgaos({ estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
   const { data: cargos } = useCargos({}, showCargo)
-  const { data: disciplinas } = useDisciplinas({}, showDisciplina)
+  const { data: disciplinas } = useDisciplinas({ cargoId: cargoId || undefined }, showDisciplina)
 
   const createMutation = useCreateEdital()
   const updateMutation = useUpdateEdital()
@@ -156,6 +157,7 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
     setMunicipioId('')
     setCidadeNome('')
     setOrgaoNome('')
+    setCargoId('')
     setCargoNome('')
     setDisciplinaNome('')
   }
@@ -316,9 +318,14 @@ function EditalForm({ editing, onClose }: { editing?: any; onClose: () => void }
           <label className="text-sm font-medium text-gray-700">Cargo</label>
           <Select
             placeholder="Selecionar cargo"
-            options={(cargos ?? []).map((c: any) => ({ value: c.nome, label: c.nome }))}
-            value={cargoNome}
-            onChange={(e) => setCargoNome(e.target.value)}
+            options={(cargos ?? []).map((c: any) => ({ value: c.id, label: c.nome }))}
+            value={cargoId}
+            onChange={(e) => {
+              const selected = (cargos ?? []).find((c: any) => c.id === e.target.value)
+              setCargoId(e.target.value)
+              setCargoNome(selected?.nome ?? '')
+              setDisciplinaNome('')
+            }}
           />
         </div>
       )}

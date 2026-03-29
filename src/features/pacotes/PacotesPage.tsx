@@ -107,6 +107,7 @@ function PacoteForm({
   const [municipioId, setMunicipioId] = useState('')
   const [cidadeNome, setCidadeNome] = useState(existing?.cidade ?? '')
   const [orgaoNome, setOrgaoNome] = useState(existing?.orgao ?? '')
+  const [cargoId, setCargoId] = useState('')
   const [cargoNome, setCargoNome] = useState(existing?.cargo ?? '')
   const [disciplinaNome, setDisciplinaNome] = useState(existing?.disciplina ?? '')
   const [error, setError] = useState('')
@@ -126,7 +127,7 @@ function PacoteForm({
   const { data: municipios } = useMunicipios(estadoId || undefined, showCidade && !!estadoId)
   const { data: orgaos } = useOrgaos({ estadoId: estadoId || undefined, municipioId: municipioId || undefined }, showOrgao)
   const { data: cargos } = useCargos({}, showCargo)
-  const { data: disciplinas } = useDisciplinas({}, showDisciplina)
+  const { data: disciplinas } = useDisciplinas({ cargoId: cargoId || undefined }, showDisciplina)
 
   const createMutation = useCreatePacote()
   const updateMutation = useUpdatePacote()
@@ -141,6 +142,7 @@ function PacoteForm({
     setMunicipioId('')
     setCidadeNome('')
     setOrgaoNome('')
+    setCargoId('')
     setCargoNome('')
     setDisciplinaNome('')
   }
@@ -287,9 +289,14 @@ function PacoteForm({
           <label className="text-sm font-medium text-gray-700">Cargo</label>
           <Select
             placeholder="Selecionar cargo"
-            options={(cargos ?? []).map((c: any) => ({ value: c.nome, label: c.nome }))}
-            value={cargoNome}
-            onChange={(e) => setCargoNome(e.target.value)}
+            options={(cargos ?? []).map((c: any) => ({ value: c.id, label: c.nome }))}
+            value={cargoId}
+            onChange={(e) => {
+              const selected = (cargos ?? []).find((c: any) => c.id === e.target.value)
+              setCargoId(e.target.value)
+              setCargoNome(selected?.nome ?? '')
+              setDisciplinaNome('')
+            }}
           />
         </div>
       )}
