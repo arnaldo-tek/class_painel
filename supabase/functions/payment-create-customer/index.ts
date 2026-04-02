@@ -18,12 +18,13 @@ serve(async (req) => {
     let customer: { id: string }
 
     if (existingId) {
-      // Update existing customer (only send fields that need updating)
-      const updatePayload: Record<string, unknown> = {}
+      // PUT /customers is a full replace — fetch existing data first to avoid nulling fields
+      const existing = await pagarmeRequest<Record<string, unknown>>(`/customers/${existingId}`, 'GET')
+      const updatePayload: Record<string, unknown> = { ...existing }
       if (document) {
         updatePayload.document = document
-        updatePayload.document_type = document_type ?? 'CPF'
-        updatePayload.type = 'individual'
+        updatePayload.document_type = (document_type ?? 'cpf').toLowerCase()
+        updatePayload.type = updatePayload.type ?? 'individual'
       }
       if (phones) updatePayload.phones = phones
       customer = await pagarmeRequest<{ id: string }>(`/customers/${existingId}`, 'PUT', updatePayload)
@@ -37,7 +38,7 @@ serve(async (req) => {
       }
       if (document) {
         createPayload.document = document
-        createPayload.document_type = document_type ?? 'CPF'
+        createPayload.document_type = (document_type ?? 'cpf').toLowerCase()
         createPayload.type = 'individual'
       }
       if (phones) createPayload.phones = phones

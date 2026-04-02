@@ -65,7 +65,7 @@ serve(async (req) => {
           amount: finalAmount,
           description: 'SuperClasse',
           quantity: 1,
-          code: body.curso_id ?? body.pacote_id ?? 'order',
+          code: body.curso_id || body.pacote_id || 'order',
         },
       ],
       payments: [
@@ -79,7 +79,7 @@ serve(async (req) => {
               exp_year: body.card.exp_year,
               cvv: body.card.cvv,
               billing_address: body.card.billing_address ?? {
-                line_1: '1, Rua Teste, Centro',
+                line_1: 'Rua Teste, 1, Centro',
                 zip_code: '01001000',
                 city: 'São Paulo',
                 state: 'SP',
@@ -89,9 +89,9 @@ serve(async (req) => {
             installments: body.installments || 1,
             statement_descriptor: 'SuperClasse',
           },
-          split: splitRules,
         },
       ],
+      split: splitRules,
     })
 
     // Create movimentacao record

@@ -92,7 +92,16 @@ export class PagarmeError extends Error {
   data: unknown
 
   constructor(status: number, data: unknown) {
-    super(`Pagar.me API error: ${status}`)
+    const details = (() => {
+      if (typeof data !== 'object' || !data) return String(data)
+      const d = data as Record<string, any>
+      // Pagar.me v5 returns errors in different shapes depending on the endpoint
+      if (d.message) return d.message
+      if (Array.isArray(d.errors) && d.errors[0]?.message) return d.errors[0].message
+      if (d.error) return d.error
+      return JSON.stringify(d)
+    })()
+    super(`Pagar.me ${status}: ${details}`)
     this.name = 'PagarmeError'
     this.status = status
     this.data = data

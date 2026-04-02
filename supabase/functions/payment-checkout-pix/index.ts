@@ -56,7 +56,7 @@ serve(async (req) => {
           amount: finalAmount,
           description: 'SuperClasse',
           quantity: 1,
-          code: body.curso_id ?? body.pacote_id ?? 'order',
+          code: body.curso_id || body.pacote_id || 'order',
         },
       ],
       payments: [
@@ -65,9 +65,9 @@ serve(async (req) => {
           pix: {
             expires_in: 1800, // 30 minutes
           },
-          split: splitRules,
         },
       ],
+      split: splitRules,
     })
 
     // Extract QR code from response
@@ -101,7 +101,9 @@ serve(async (req) => {
       qr_code_url: qrCodeUrl,
     })
   } catch (err) {
-    console.error('payment-checkout-pix error:', err)
-    return errorResponse(err.message ?? 'Internal error', 500)
+    const isPayment = err?.name === 'PagarmeError'
+    const detail = isPayment ? JSON.stringify(err.data) : undefined
+    console.error('payment-checkout-pix error:', err.message, detail ?? '')
+    return errorResponse(detail ? `${err.message} | ${detail}` : (err.message ?? 'Internal error'), 500)
   }
 })
