@@ -43,12 +43,14 @@ export interface Disciplina {
   municipio_id: string | null
   orgao_id: string | null
   cargo_id: string | null
+  nivel_id: string | null
   categoria_nome: string | null
   esfera_nome: string | null
   estado_nome: string | null
   municipio_nome: string | null
   orgao_nome: string | null
   cargo_nome: string | null
+  nivel_nome: string | null
 }
 
 // --- Estados (somente leitura) ---
@@ -275,13 +277,14 @@ export async function fetchDisciplinas() {
   const { data, error, count } = await supabase
     .from('disciplinas')
     .select(`
-      id, nome, categoria_id, esfera_id, estado_id, municipio_id, orgao_id, cargo_id,
+      id, nome, categoria_id, esfera_id, estado_id, municipio_id, orgao_id, cargo_id, nivel_id,
       categorias(nome),
       esferas(nome),
       estados(nome),
       municipios(nome),
       orgaos(nome),
-      cargos(nome)
+      cargos(nome),
+      niveis(nome)
     `, { count: 'exact' })
     .order('nome')
   if (error) throw error
@@ -294,12 +297,14 @@ export async function fetchDisciplinas() {
     municipio_id: d.municipio_id,
     orgao_id: d.orgao_id,
     cargo_id: d.cargo_id,
+    nivel_id: d.nivel_id,
     categoria_nome: d.categorias?.nome ?? null,
     esfera_nome: d.esferas?.nome ?? null,
     estado_nome: d.estados?.nome ?? null,
     municipio_nome: d.municipios?.nome ?? null,
     orgao_nome: d.orgaos?.nome ?? null,
     cargo_nome: d.cargos?.nome ?? null,
+    nivel_nome: d.niveis?.nome ?? null,
   }))
   return { items, total: count ?? 0 }
 }

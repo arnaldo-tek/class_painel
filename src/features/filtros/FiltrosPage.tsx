@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { SlidersHorizontal, Plus, Pencil, Trash2, X } from 'lucide-react'
+import { SlidersHorizontal, Plus, Pencil, Trash2, X, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, type SelectOptionGroup } from '@/components/ui/select'
@@ -194,6 +194,7 @@ function SimpleCrudPanel({ label, useList, useCreate, useUpdate, useDelete }: Si
   const [editingId, setEditingId] = useState<string | null>(null)
   const [nome, setNome] = useState('')
   const [error, setError] = useState('')
+  const [searchText, setSearchText] = useState('')
 
   const { data, isLoading } = useList()
   const createMut = useCreate()
@@ -241,11 +242,16 @@ function SimpleCrudPanel({ label, useList, useCreate, useUpdate, useDelete }: Si
         </div>
       )}
 
+      <div className="flex gap-2 max-w-sm">
+        <Input placeholder={`Buscar ${label.toLowerCase()}...`} value={searchText} onChange={(e) => setSearchText(e.target.value)} />
+        {searchText && <button onClick={() => setSearchText('')} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4" /></button>}
+      </div>
+
       {isLoading ? <Loading /> : !data?.items.length ? (
         <EmptyState icon={<SlidersHorizontal className="h-12 w-12" />} title={`Nenhum ${label.toLowerCase()} encontrado`} />
       ) : (
         <div className="space-y-2">
-          {data.items.map((item) => (
+          {data.items.filter((item) => item.nome.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
             <div key={item.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
               <span className="flex-1 font-medium text-gray-900">{item.nome}</span>
               <button onClick={() => openEdit(item)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
@@ -271,6 +277,7 @@ function OrgaosPanel() {
   const [municipioId, setMunicipioId] = useState('')
   const [escolaridadeId, setEscolaridadeId] = useState('')
   const [filterCategoriaId, setFilterCategoriaId] = useState('')
+  const [searchText, setSearchText] = useState('')
   const [error, setError] = useState('')
 
   const { data: categoriasData } = useCategorias()
@@ -296,10 +303,11 @@ function OrgaosPanel() {
   const showEstado = esferaNome === 'Estadual' || esferaNome === 'Municipal'
   const showCidade = esferaNome === 'Municipal' && !!estadoId
 
-  // Filter displayed orgãos by category
+  // Filter displayed orgãos by category + search
   const filteredItems = (data?.items ?? []).filter((item) => {
-    if (!filterCategoriaId) return true
-    return item.categoria_id === filterCategoriaId
+    if (filterCategoriaId && item.categoria_id !== filterCategoriaId) return false
+    if (searchText && !item.nome.toLowerCase().includes(searchText.toLowerCase())) return false
+    return true
   })
 
   function handleEsferaChange(value: string) {
@@ -381,16 +389,22 @@ function OrgaosPanel() {
         </div>
       )}
 
-      {/* Filter by category */}
-      <div className="max-w-xs">
-        <Select
-          label="Filtrar por categoria"
-          placeholder="Todas as categorias"
-          options={[]}
-          groups={categoriaGrps}
-          value={filterCategoriaId}
-          onChange={(e) => setFilterCategoriaId(e.target.value)}
-        />
+      {/* Filter by category + search */}
+      <div className="flex flex-wrap gap-2 items-end">
+        <div className="max-w-xs">
+          <Select
+            label="Filtrar por categoria"
+            placeholder="Todas as categorias"
+            options={[]}
+            groups={categoriaGrps}
+            value={filterCategoriaId}
+            onChange={(e) => setFilterCategoriaId(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 flex-1 min-w-[200px] max-w-sm">
+          <Input placeholder="Buscar órgão..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="flex-1" />
+          <button onClick={() => setSearchText('')} className={`rounded p-2 text-gray-400 hover:text-gray-600 ${!searchText && 'invisible'}`}><X className="h-4 w-4" /></button>
+        </div>
       </div>
 
       {isLoading ? <Loading /> : !filteredItems.length ? (
@@ -433,6 +447,7 @@ function CargosPanel() {
   const [esferaId, setEsferaId] = useState('')
   const [estadoId, setEstadoId] = useState('')
   const [municipioId, setMunicipioId] = useState('')
+  const [searchText, setSearchText] = useState('')
   const [error, setError] = useState('')
 
   const { data: categoriasData } = useCategorias()
@@ -544,25 +559,39 @@ function CargosPanel() {
         </div>
       )}
 
+      <div className="flex gap-2 max-w-sm">
+        <Input placeholder="Buscar cargo..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="flex-1" />
+        <button onClick={() => setSearchText('')} className={`rounded p-2 text-gray-400 hover:text-gray-600 ${!searchText && 'invisible'}`}><X className="h-4 w-4" /></button>
+      </div>
+
       {isLoading ? <Loading /> : !data?.items.length ? (
         <EmptyState icon={<SlidersHorizontal className="h-12 w-12" />} title="Nenhum cargo encontrado" />
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-gray-500">{data.total} cargos</p>
-          {data.items.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
-              <div className="flex-1">
-                <span className="font-medium text-gray-900">{item.nome}</span>
-                <ExtraFields fields={[
-                  { label: 'Categoria', value: item.categoria_nome },
-                  { label: 'Escolaridade', value: item.escolaridade_nome },
-                  { label: 'Orgao', value: item.orgao_nome },
-                ]} />
-              </div>
-              <button onClick={() => openEdit(item)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-              <button onClick={() => handleDelete(item)} className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
-            </div>
-          ))}
+          {(() => {
+            const filtered = data.items.filter((i) => i.nome.toLowerCase().includes(searchText.toLowerCase()))
+            return filtered.length === 0 ? (
+              <p className="text-sm text-gray-500">Nenhum cargo encontrado para "{searchText}"</p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500">{filtered.length} cargos{searchText ? ' encontrados' : ''}</p>
+                {filtered.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                    <div className="flex-1">
+                      <span className="font-medium text-gray-900">{item.nome}</span>
+                      <ExtraFields fields={[
+                        { label: 'Categoria', value: item.categoria_nome },
+                        { label: 'Escolaridade', value: item.escolaridade_nome },
+                        { label: 'Orgao', value: item.orgao_nome },
+                      ]} />
+                    </div>
+                    <button onClick={() => openEdit(item)} className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
+                    <button onClick={() => handleDelete(item)} className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                ))}
+              </>
+            )
+          })()}
         </div>
       )}
     </div>
@@ -582,12 +611,15 @@ function DisciplinasPanel() {
   const [municipioId, setMunicipioId] = useState('')
   const [orgaoId, setOrgaoId] = useState('')
   const [cargoId, setCargoId] = useState('')
+  const [nivelId, setNivelId] = useState('')
+  const [searchText, setSearchText] = useState('')
   const [error, setError] = useState('')
 
   const { data: categoriasData } = useCategorias()
   const { data: esferasData } = useEsferas()
   const { data: estadosData } = useEstados()
   const { data: cidadesData } = useMunicipiosByEstado(estadoId || undefined)
+  const { data: niveisData } = useNiveis()
   const { data: orgaosData } = useOrgaos()
   const { data: cargosData } = useCargos()
   const { data, isLoading } = useDisciplinas()
@@ -607,6 +639,8 @@ function DisciplinasPanel() {
   const showCidade = selectedCategoria?.filtro_cidade === true
   const showOrgao = selectedCategoria?.filtro_orgao === true
   const showCargo = selectedCategoria?.filtro_cargo === true
+  const showNivel = selectedCategoria?.filtro_nivel === true
+  const nivelOpts = idOptions(niveisData?.items ?? [])
 
   // Filtra órgãos pela cascata
   const orgaosFiltrados = (orgaosData?.items ?? []).filter((o) => {
@@ -629,12 +663,12 @@ function DisciplinasPanel() {
   }
 
   function openCreate() {
-    setEditingId(null); setNome(''); setCategoriaId(''); setEsferaId(''); setEstadoId(''); setMunicipioId(''); setOrgaoId(''); setCargoId(''); setError(''); setShowForm(true)
+    setEditingId(null); setNome(''); setCategoriaId(''); setEsferaId(''); setEstadoId(''); setMunicipioId(''); setOrgaoId(''); setCargoId(''); setNivelId(''); setError(''); setShowForm(true)
   }
 
   function openEdit(item: Disciplina) {
     setEditingId(item.id); setNome(item.nome); setCategoriaId(item.categoria_id ?? ''); setEsferaId(item.esfera_id ?? '')
-    setEstadoId(item.estado_id ?? ''); setMunicipioId(item.municipio_id ?? ''); setOrgaoId(item.orgao_id ?? ''); setCargoId(item.cargo_id ?? ''); setError(''); setShowForm(true)
+    setEstadoId(item.estado_id ?? ''); setMunicipioId(item.municipio_id ?? ''); setOrgaoId(item.orgao_id ?? ''); setCargoId(item.cargo_id ?? ''); setNivelId(item.nivel_id ?? ''); setError(''); setShowForm(true)
   }
 
   function closeForm() { setShowForm(false); setEditingId(null); setError('') }
@@ -651,6 +685,7 @@ function DisciplinasPanel() {
       municipio_id: showCidade ? (municipioId || null) : null,
       orgao_id: showOrgao ? (orgaoId || null) : null,
       cargo_id: showCargo ? (cargoId || null) : null,
+      nivel_id: showNivel ? (nivelId || null) : null,
     }
     try {
       if (editingId) { await updateMut.mutateAsync({ id: editingId, ...payload }) }
@@ -691,6 +726,9 @@ function DisciplinasPanel() {
               {showCargo && (
                 <Select label="Cargo" placeholder={cargoOpts.length ? 'Selecione o cargo' : 'Nenhum cargo encontrado'} options={cargoOpts} value={cargoId} onChange={(e) => setCargoId(e.target.value)} />
               )}
+              {showNivel && (
+                <Select label="Nível" placeholder={nivelOpts.length ? 'Selecione o nível' : 'Nenhum nível encontrado'} options={nivelOpts} value={nivelId} onChange={(e) => setNivelId(e.target.value)} />
+              )}
               <Input label="Nome" placeholder="Nome da disciplina" value={nome} onChange={(e) => setNome(e.target.value)} required />
             </div>
             <div className="flex items-center gap-3">
@@ -701,17 +739,26 @@ function DisciplinasPanel() {
         </div>
       )}
 
+      <div className="flex gap-2 max-w-sm">
+        <Input placeholder="Buscar disciplina..." value={searchText} onChange={(e) => setSearchText(e.target.value)} className="flex-1" />
+        <button onClick={() => setSearchText('')} className={`rounded p-2 text-gray-400 hover:text-gray-600 ${!searchText && 'invisible'}`}><X className="h-4 w-4" /></button>
+      </div>
+
       {isLoading ? <Loading /> : !data?.items.length ? (
         <EmptyState icon={<SlidersHorizontal className="h-12 w-12" />} title="Nenhuma disciplina encontrada" />
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-gray-500">{data.total} disciplinas</p>
-          {data.items.map((item) => (
+          {(() => {
+            const filtered = data.items.filter((i) => i.nome.toLowerCase().includes(searchText.toLowerCase()))
+            return <p className="text-sm text-gray-500">{filtered.length} disciplinas{searchText ? ' encontradas' : ''}</p>
+          })()}
+          {data.items.filter((i) => i.nome.toLowerCase().includes(searchText.toLowerCase())).map((item) => (
             <div key={item.id} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
               <div className="flex-1">
                 <span className="font-medium text-gray-900">{item.nome}</span>
                 <ExtraFields fields={[
                   { label: 'Categoria', value: item.categoria_nome },
+                  { label: 'Nível', value: item.nivel_nome },
                   { label: 'Esfera', value: item.esfera_nome },
                   { label: 'Estado', value: item.estado_nome },
                   { label: 'Cidade', value: item.municipio_nome },
