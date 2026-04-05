@@ -297,6 +297,7 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
               <TableRow>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Curso</TableHead>
+                <TableHead>Origem</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Status</TableHead>
@@ -316,6 +317,11 @@ function TabGeral({ dateFrom, dateTo, onDateFromChange, onDateToChange, professo
                       <p className="text-xs text-gray-500">{v.email_cliente ?? ''}</p>
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate">{v.nome_curso ?? '—'}</TableCell>
+                    <TableCell>
+                      {v.origem === 'pacote'
+                        ? <Badge variant="info">Pacote</Badge>
+                        : <Badge variant="default">Avulso</Badge>}
+                    </TableCell>
                     <TableCell className="font-medium">{formatCurrency(v.valor)}</TableCell>
                     <TableCell className="text-gray-500">{paymentMethod}</TableCell>
                     <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>

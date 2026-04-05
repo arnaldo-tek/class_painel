@@ -347,6 +347,7 @@ export interface MovimentacaoVenda {
   nome_curso: string | null
   curso_nome_join: string | null
   metodo_pagamento: string | null
+  origem: 'avulso' | 'pacote' | null
 }
 
 export async function fetchVendasMovimentacoes(filters: VendasFilters): Promise<VendasResult> {
@@ -356,7 +357,7 @@ export async function fetchVendasMovimentacoes(filters: VendasFilters): Promise<
     // Professor view: query via splits to include package sales
     let query = supabase
       .from('movimentacao_splits')
-      .select('id, valor_bruto, valor_professor, valor_plataforma, curso_id, cursos(nome), movimentacoes!inner(id, pagarme_order_id, status, created_at, nome_cliente, email_cliente, profiles(display_name, email))', { count: 'exact' })
+      .select('id, valor_bruto, valor_professor, valor_plataforma, curso_id, cursos(nome), movimentacoes!inner(id, pagarme_order_id, status, created_at, nome_cliente, email_cliente, pacote_id, profiles(display_name, email))', { count: 'exact' })
       .eq('professor_id', professorId)
       .order('created_at', { ascending: false, referencedTable: 'movimentacoes' })
       .range((page - 1) * perPage, page * perPage - 1)
@@ -383,6 +384,7 @@ export async function fetchVendasMovimentacoes(filters: VendasFilters): Promise<
         nome_curso: row.cursos?.nome || null,
         curso_nome_join: row.cursos?.nome || null,
         metodo_pagamento: null,
+        origem: mov?.pacote_id ? 'pacote' : 'avulso',
       }
     })
 
@@ -417,6 +419,7 @@ export async function fetchVendasMovimentacoes(filters: VendasFilters): Promise<
     nome_curso: row.nome_curso || row.cursos?.nome || null,
     curso_nome_join: row.cursos?.nome || null,
     metodo_pagamento: null,
+    origem: row.pacote_id ? 'pacote' : 'avulso',
   }))
 
   const total = count ?? vendas.length

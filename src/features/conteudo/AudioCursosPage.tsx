@@ -1,11 +1,11 @@
-import { useState, useEffect, type FormEvent, type ReactNode } from 'react'
+import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react'
 import {
   Plus, FolderOpen, FolderClosed, FileText, Trash2, Pencil, ChevronRight, ChevronDown,
   Music, HelpCircle, AlignLeft, Upload, Loader2, Search, MoreHorizontal, X,
 } from 'lucide-react'
 import {
-  usePacotesLeis, useCreatePacoteLei, useDeletePacoteLei,
-  useSubpastasLeis, useCreateSubpastaLei, useDeleteSubpastaLei,
+  usePacotesLeis, useCreatePacoteLei, useUpdatePacoteLei, useDeletePacoteLei,
+  useSubpastasLeis, useCreateSubpastaLei, useUpdateSubpastaLei, useDeleteSubpastaLei,
   useLeis, useLei, useCreateLei, useUpdateLei, useDeleteLei,
   useAudioLeis, useCreateAudioLei, useDeleteAudioLei,
   useQuestoesLeis, useCreateQuestaoLei, useUpdateQuestaoLei, useDeleteQuestaoLei,
@@ -179,6 +179,8 @@ function PastaNode({
 }) {
   const { data: subpastas } = useSubpastasLeis(isExpanded ? pacote.id : undefined)
   const deleteSubMutation = useDeleteSubpastaLei()
+  const updateSubMutation = useUpdateSubpastaLei()
+  const updatePacoteMutation = useUpdatePacoteLei()
 
   return (
     <div>
@@ -189,6 +191,10 @@ function PastaNode({
         isSelected={selection.pacoteId === pacote.id && !selection.subpastaId}
         onToggle={onToggle}
         onDelete={onDelete}
+        onEdit={() => {
+          const novo = prompt('Novo nome:', pacote.nome ?? '')
+          if (novo && novo.trim() && novo.trim() !== pacote.nome) updatePacoteMutation.mutate({ id: pacote.id, nome: novo.trim() })
+        }}
         depth={0}
       />
       {isExpanded && subpastas && (
@@ -204,6 +210,10 @@ function PastaNode({
               onToggle={() => onSelectSubpasta(sub.id)}
               onSelectLei={(leiId) => onSelectLei(sub.id, leiId)}
               onDelete={() => { if (confirm(`Excluir "${sub.nome}"?`)) deleteSubMutation.mutate(sub.id) }}
+              onEdit={() => {
+                const novo = prompt('Novo nome:', sub.nome)
+                if (novo && novo.trim() && novo.trim() !== sub.nome) updateSubMutation.mutate({ id: sub.id, nome: novo.trim() })
+              }}
             />
           ))}
         </div>
@@ -214,7 +224,7 @@ function PastaNode({
 
 function SubpastaNode({
   subpasta, pacoteId, isExpanded, selection, search,
-  onToggle, onSelectLei, onDelete,
+  onToggle, onSelectLei, onDelete, onEdit,
 }: {
   subpasta: any
   pacoteId: string
@@ -224,9 +234,11 @@ function SubpastaNode({
   onToggle: () => void
   onSelectLei: (leiId: string) => void
   onDelete: () => void
+  onEdit?: () => void
 }) {
   const { data: leis } = useLeis(isExpanded ? subpasta.id : undefined)
   const deleteLeiMutation = useDeleteLei()
+  const updateLeiMutation = useUpdateLei()
 
   return (
     <div>
@@ -237,6 +249,7 @@ function SubpastaNode({
         isSelected={selection.subpastaId === subpasta.id && !selection.leiId}
         onToggle={onToggle}
         onDelete={onDelete}
+        onEdit={onEdit}
         depth={1}
       />
       {isExpanded && leis && (
@@ -249,6 +262,10 @@ function SubpastaNode({
               isSelected={selection.leiId === lei.id}
               onToggle={() => onSelectLei(lei.id)}
               onDelete={() => { if (confirm(`Excluir "${lei.nome}"?`)) deleteLeiMutation.mutate(lei.id) }}
+              onEdit={() => {
+                const novo = prompt('Novo nome:', lei.nome)
+                if (novo && novo.trim() && novo.trim() !== lei.nome) updateLeiMutation.mutate({ id: lei.id, nome: novo.trim() })
+              }}
               depth={2}
               isLeaf
             />
@@ -260,7 +277,7 @@ function SubpastaNode({
 }
 
 function TreeItem({
-  icon, label, isExpanded, isSelected, onToggle, onDelete, depth, isLeaf,
+  icon, label, isExpanded, isSelected, onToggle, onDelete, onEdit, depth, isLeaf,
 }: {
   icon: ReactNode
   label: string
@@ -268,19 +285,31 @@ function TreeItem({
   isSelected?: boolean
   onToggle: () => void
   onDelete: () => void
+  onEdit?: () => void
   depth: number
   isLeaf?: boolean
 }) {
   const [showMenu, setShowMenu] = useState(false)
+  const [openUpward, setOpenUpward] = useState(false)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
   const pl = depth === 0 ? 'pl-2' : depth === 1 ? 'pl-6' : 'pl-10'
+
+  function handleMenuOpen(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!showMenu && menuBtnRef.current) {
+      const rect = menuBtnRef.current.getBoundingClientRect()
+      setOpenUpward(rect.bottom + 80 > window.innerHeight)
+    }
+    setShowMenu(!showMenu)
+  }
 
   return (
     <div
-      className={`group flex items-center gap-1 rounded-md px-1 py-1 cursor-pointer text-sm transition-colors ${pl} ${
+      className={`relative group flex items-center gap-1 rounded-md px-1 py-1 cursor-pointer text-sm transition-colors ${pl} ${
         isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
       }`}
       onClick={onToggle}
-      onContextMenu={(e) => { e.preventDefault(); setShowMenu(!showMenu) }}
+      onContextMenu={(e) => { e.preventDefault(); handleMenuOpen(e) }}
     >
       {!isLeaf ? (
         isExpanded ? <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" /> : <ChevronRight className="h-3 w-3 shrink-0 text-gray-400" />
@@ -290,20 +319,35 @@ function TreeItem({
       {icon}
       <span className="flex-1 truncate text-xs font-medium">{label}</span>
       <button
-        onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
+        ref={menuBtnRef}
+        onClick={handleMenuOpen}
         className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-200"
       >
         <MoreHorizontal className="h-3 w-3 text-gray-400" />
       </button>
       {showMenu && (
-        <div className="absolute right-2 z-10 mt-1 rounded-md border border-gray-200 bg-white py-1 shadow-lg" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => { setShowMenu(false); onDelete() }}
-            className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+          <div
+            className={`absolute right-0 z-20 w-36 rounded-md border border-gray-200 bg-white py-1 shadow-lg ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Trash2 className="h-3 w-3" /> Excluir
-          </button>
-        </div>
+            {onEdit && (
+              <button
+                onClick={() => { setShowMenu(false); onEdit() }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+              >
+                <Pencil className="h-3 w-3" /> Renomear
+              </button>
+            )}
+            <button
+              onClick={() => { setShowMenu(false); onDelete() }}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="h-3 w-3" /> Excluir
+            </button>
+          </div>
+        </>
       )}
     </div>
   )
@@ -402,16 +446,18 @@ function SidebarActions({ tipo, selection }: { tipo: number; selection: Selectio
 // ============================================================
 
 function MainPanel({ selection }: { selection: Selection }) {
+  const [tab, setTab] = useState<'audios' | 'questoes' | 'texto'>('audios')
+
   if (selection.leiId) {
-    return <LeiDetailPanel leiId={selection.leiId} />
+    return <LeiDetailPanel leiId={selection.leiId} tab={tab} onTabChange={setTab} />
   }
 
   if (selection.subpastaId) {
-    return <SubpastaDetailPanel subpastaId={selection.subpastaId} selection={selection} />
+    return <SubpastaDetailPanel key={selection.subpastaId} subpastaId={selection.subpastaId} selection={selection} />
   }
 
   if (selection.pacoteId) {
-    return <PacoteDetailPanel pacoteId={selection.pacoteId} />
+    return <PacoteDetailPanel key={selection.pacoteId} pacoteId={selection.pacoteId} />
   }
 
   return (
@@ -490,8 +536,7 @@ function LeiCard({ lei }: { lei: any }) {
 // Lei Detail (3 abas: Áudios, Questões, Texto)
 // ============================================================
 
-function LeiDetailPanel({ leiId }: { leiId: string }) {
-  const [tab, setTab] = useState<'audios' | 'questoes' | 'texto'>('audios')
+function LeiDetailPanel({ leiId, tab, onTabChange }: { leiId: string; tab: 'audios' | 'questoes' | 'texto'; onTabChange: (t: 'audios' | 'questoes' | 'texto') => void }) {
   const { data: lei } = useLei(leiId)
   const { data: audios } = useAudioLeis(leiId)
   const { data: questoes } = useQuestoesLeis(leiId)
@@ -512,7 +557,7 @@ function LeiDetailPanel({ leiId }: { leiId: string }) {
         ]).map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => onTabChange(t.key)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               tab === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
@@ -526,8 +571,8 @@ function LeiDetailPanel({ leiId }: { leiId: string }) {
         ))}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* Content — key reseta formulários ao trocar de lei, sem afetar a aba ativa */}
+      <div key={leiId} className="flex-1 overflow-y-auto p-6">
         {tab === 'audios' && <AudiosTab leiId={leiId} />}
         {tab === 'questoes' && <QuestoesTab leiId={leiId} />}
         {tab === 'texto' && <TextoTab leiId={leiId} />}
