@@ -1483,6 +1483,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           nome: string
+          pdf: string | null
           subpasta_id: string | null
           texto: string | null
           updated_at: string | null
@@ -1492,6 +1493,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           nome: string
+          pdf?: string | null
           subpasta_id?: string | null
           texto?: string | null
           updated_at?: string | null
@@ -1501,6 +1503,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           nome?: string
+          pdf?: string | null
           subpasta_id?: string | null
           texto?: string | null
           updated_at?: string | null

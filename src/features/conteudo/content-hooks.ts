@@ -78,7 +78,10 @@ export function useUpdateLei() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...u }: { id: string } & Record<string, unknown>) => updateLei(id, u),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['leis'] }),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['leis'] })
+      qc.invalidateQueries({ queryKey: ['lei', variables.id] })
+    },
   })
 }
 export function useDeleteLei() {

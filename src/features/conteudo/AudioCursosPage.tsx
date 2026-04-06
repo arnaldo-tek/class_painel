@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type FormEvent, type ReactNode } from 'react'
 import {
   Plus, FolderOpen, FolderClosed, FileText, Trash2, Pencil, ChevronRight, ChevronDown,
-  Music, HelpCircle, AlignLeft, Upload, Loader2, Search, MoreHorizontal, X,
+  Music, HelpCircle, AlignLeft, Upload, Loader2, Search, MoreHorizontal, X, Download,
 } from 'lucide-react'
 import {
   usePacotesLeis, useCreatePacoteLei, useUpdatePacoteLei, useDeletePacoteLei,
@@ -30,10 +30,35 @@ interface Selection {
   leiId?: string
 }
 
+function readUrlState() {
+  const p = new URLSearchParams(window.location.search)
+  return {
+    activeTab: parseInt(p.get('t') ?? '1') || 1,
+    selection: {
+      pacoteId: p.get('p') ?? undefined,
+      subpastaId: p.get('s') ?? undefined,
+      leiId: p.get('l') ?? undefined,
+    } as Selection,
+  }
+}
+
+function writeUrlState(activeTab: number, selection: Selection) {
+  const p = new URLSearchParams()
+  if (activeTab !== 1) p.set('t', String(activeTab))
+  if (selection.pacoteId) p.set('p', selection.pacoteId)
+  if (selection.subpastaId) p.set('s', selection.subpastaId)
+  if (selection.leiId) p.set('l', selection.leiId)
+  const qs = p.toString()
+  window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname)
+}
+
 export function AudioCursosPage() {
-  const [activeTab, setActiveTab] = useState(1)
-  const [selection, setSelection] = useState<Selection>({})
+  const initial = readUrlState()
+  const [activeTab, setActiveTab] = useState(initial.activeTab)
+  const [selection, setSelection] = useState<Selection>(initial.selection)
   const [search, setSearch] = useState('')
+
+  useEffect(() => { writeUrlState(activeTab, selection) }, [activeTab, selection])
 
   function handleTabChange(tipo: number) {
     setActiveTab(tipo)
@@ -53,10 +78,10 @@ export function AudioCursosPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4 h-full">
       <h1 className="text-2xl font-bold text-gray-900">Audio Cursos</h1>
 
-      <div className="flex gap-4 h-[calc(100vh-180px)]">
+      <div className="flex gap-4 flex-1 min-h-0">
         {/* Sidebar */}
         <div className="w-72 shrink-0 flex flex-col rounded-lg border border-gray-200 bg-white overflow-hidden">
           {/* Tabs no topo da sidebar */}
@@ -191,10 +216,7 @@ function PastaNode({
         isSelected={selection.pacoteId === pacote.id && !selection.subpastaId}
         onToggle={onToggle}
         onDelete={onDelete}
-        onEdit={() => {
-          const novo = prompt('Novo nome:', pacote.nome ?? '')
-          if (novo && novo.trim() && novo.trim() !== pacote.nome) updatePacoteMutation.mutate({ id: pacote.id, nome: novo.trim() })
-        }}
+        onRename={(nome) => updatePacoteMutation.mutate({ id: pacote.id, nome })}
         depth={0}
       />
       {isExpanded && subpastas && (
@@ -210,10 +232,7 @@ function PastaNode({
               onToggle={() => onSelectSubpasta(sub.id)}
               onSelectLei={(leiId) => onSelectLei(sub.id, leiId)}
               onDelete={() => { if (confirm(`Excluir "${sub.nome}"?`)) deleteSubMutation.mutate(sub.id) }}
-              onEdit={() => {
-                const novo = prompt('Novo nome:', sub.nome)
-                if (novo && novo.trim() && novo.trim() !== sub.nome) updateSubMutation.mutate({ id: sub.id, nome: novo.trim() })
-              }}
+              onRename={(nome) => updateSubMutation.mutate({ id: sub.id, nome })}
             />
           ))}
         </div>
@@ -224,7 +243,7 @@ function PastaNode({
 
 function SubpastaNode({
   subpasta, pacoteId, isExpanded, selection, search,
-  onToggle, onSelectLei, onDelete, onEdit,
+  onToggle, onSelectLei, onDelete, onRename,
 }: {
   subpasta: any
   pacoteId: string
@@ -234,7 +253,7 @@ function SubpastaNode({
   onToggle: () => void
   onSelectLei: (leiId: string) => void
   onDelete: () => void
-  onEdit?: () => void
+  onRename?: (nome: string) => void
 }) {
   const { data: leis } = useLeis(isExpanded ? subpasta.id : undefined)
   const deleteLeiMutation = useDeleteLei()
@@ -249,7 +268,7 @@ function SubpastaNode({
         isSelected={selection.subpastaId === subpasta.id && !selection.leiId}
         onToggle={onToggle}
         onDelete={onDelete}
-        onEdit={onEdit}
+        onRename={onRename}
         depth={1}
       />
       {isExpanded && leis && (
@@ -262,10 +281,7 @@ function SubpastaNode({
               isSelected={selection.leiId === lei.id}
               onToggle={() => onSelectLei(lei.id)}
               onDelete={() => { if (confirm(`Excluir "${lei.nome}"?`)) deleteLeiMutation.mutate(lei.id) }}
-              onEdit={() => {
-                const novo = prompt('Novo nome:', lei.nome)
-                if (novo && novo.trim() && novo.trim() !== lei.nome) updateLeiMutation.mutate({ id: lei.id, nome: novo.trim() })
-              }}
+              onRename={(nome) => updateLeiMutation.mutate({ id: lei.id, nome })}
               depth={2}
               isLeaf
             />
@@ -277,7 +293,7 @@ function SubpastaNode({
 }
 
 function TreeItem({
-  icon, label, isExpanded, isSelected, onToggle, onDelete, onEdit, depth, isLeaf,
+  icon, label, isExpanded, isSelected, onToggle, onDelete, onRename, depth, isLeaf,
 }: {
   icon: ReactNode
   label: string
@@ -285,13 +301,16 @@ function TreeItem({
   isSelected?: boolean
   onToggle: () => void
   onDelete: () => void
-  onEdit?: () => void
+  onRename?: (newName: string) => void
   depth: number
   isLeaf?: boolean
 }) {
   const [showMenu, setShowMenu] = useState(false)
   const [openUpward, setOpenUpward] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
   const menuBtnRef = useRef<HTMLButtonElement>(null)
+  const renameInputRef = useRef<HTMLInputElement>(null)
   const pl = depth === 0 ? 'pl-2' : depth === 1 ? 'pl-6' : 'pl-10'
 
   function handleMenuOpen(e: React.MouseEvent) {
@@ -303,53 +322,86 @@ function TreeItem({
     setShowMenu(!showMenu)
   }
 
+  function openRename() {
+    setShowMenu(false)
+    setRenameValue(label)
+    setRenaming(true)
+    setTimeout(() => renameInputRef.current?.select(), 50)
+  }
+
+  function handleRenameSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const v = renameValue.trim()
+    if (v && v !== label) onRename?.(v)
+    setRenaming(false)
+  }
+
   return (
-    <div
-      className={`relative group flex items-center gap-1 rounded-md px-1 py-1 cursor-pointer text-sm transition-colors ${pl} ${
-        isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-      }`}
-      onClick={onToggle}
-      onContextMenu={(e) => { e.preventDefault(); handleMenuOpen(e) }}
-    >
-      {!isLeaf ? (
-        isExpanded ? <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" /> : <ChevronRight className="h-3 w-3 shrink-0 text-gray-400" />
-      ) : (
-        <span className="w-3" />
-      )}
-      {icon}
-      <span className="flex-1 truncate text-xs font-medium">{label}</span>
-      <button
-        ref={menuBtnRef}
-        onClick={handleMenuOpen}
-        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-200"
+    <>
+      <div
+        className={`relative group flex items-center gap-1 rounded-md px-1 py-1 cursor-pointer text-sm transition-colors ${pl} ${
+          isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+        }`}
+        onClick={onToggle}
+        onContextMenu={(e) => { e.preventDefault(); handleMenuOpen(e) }}
       >
-        <MoreHorizontal className="h-3 w-3 text-gray-400" />
-      </button>
-      {showMenu && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-          <div
-            className={`absolute right-0 z-20 w-36 rounded-md border border-gray-200 bg-white py-1 shadow-lg ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {onEdit && (
-              <button
-                onClick={() => { setShowMenu(false); onEdit() }}
-                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
-              >
-                <Pencil className="h-3 w-3" /> Renomear
-              </button>
-            )}
-            <button
-              onClick={() => { setShowMenu(false); onDelete() }}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+        {!isLeaf ? (
+          isExpanded ? <ChevronDown className="h-3 w-3 shrink-0 text-gray-400" /> : <ChevronRight className="h-3 w-3 shrink-0 text-gray-400" />
+        ) : (
+          <span className="w-3" />
+        )}
+        {icon}
+        <span className="flex-1 truncate text-xs font-medium">{label}</span>
+        <button
+          ref={menuBtnRef}
+          onClick={handleMenuOpen}
+          className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-200"
+        >
+          <MoreHorizontal className="h-3 w-3 text-gray-400" />
+        </button>
+        {showMenu && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+            <div
+              className={`absolute right-0 z-20 w-36 rounded-md border border-gray-200 bg-white py-1 shadow-lg ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+              onClick={(e) => e.stopPropagation()}
             >
-              <Trash2 className="h-3 w-3" /> Excluir
-            </button>
+              {onRename && (
+                <button
+                  onClick={openRename}
+                  className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  <Pencil className="h-3 w-3" /> Renomear
+                </button>
+              )}
+              <button
+                onClick={() => { setShowMenu(false); onDelete() }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-3 w-3" /> Excluir
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Modal de renomear */}
+      <Modal open={renaming} onClose={() => setRenaming(false)} title="Renomear" maxWidth="max-w-sm">
+        <form onSubmit={handleRenameSubmit} className="space-y-4">
+          <Input
+            ref={renameInputRef}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder="Novo nome..."
+            autoFocus
+          />
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setRenaming(false)}>Cancelar</Button>
+            <Button type="submit" size="sm" disabled={!renameValue.trim() || renameValue.trim() === label}>Salvar</Button>
           </div>
-        </>
-      )}
-    </div>
+        </form>
+      </Modal>
+    </>
   )
 }
 
@@ -572,7 +624,7 @@ function LeiDetailPanel({ leiId, tab, onTabChange }: { leiId: string; tab: 'audi
       </div>
 
       {/* Content — key reseta formulários ao trocar de lei, sem afetar a aba ativa */}
-      <div key={leiId} className="flex-1 overflow-y-auto p-6">
+      <div key={leiId} className={`flex-1 overflow-y-auto p-6 ${tab === 'texto' ? 'flex flex-col' : ''}`}>
         {tab === 'audios' && <AudiosTab leiId={leiId} />}
         {tab === 'questoes' && <QuestoesTab leiId={leiId} />}
         {tab === 'texto' && <TextoTab leiId={leiId} />}
@@ -868,33 +920,72 @@ function TextoTab({ leiId }: { leiId: string }) {
   const { data: lei, isLoading } = useLei(leiId)
   const updateMutation = useUpdateLei()
   const [texto, setTexto] = useState('')
+  const [pdf, setPdf] = useState<string | null>(null)
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
     if (lei && !initialized) {
       setTexto(lei.texto ?? '')
+      setPdf(lei.pdf ?? null)
       setInitialized(true)
     }
   }, [lei, initialized])
 
   async function handleSave() {
-    await updateMutation.mutateAsync({ id: leiId, texto: texto || null })
+    await updateMutation.mutateAsync({ id: leiId, texto: texto || null, pdf: pdf || null })
   }
 
   if (isLoading) return <p className="text-sm text-gray-400">Carregando...</p>
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4 h-full">
       <textarea
-        className="block w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        rows={15}
+        className="flex-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-sm resize-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-h-[300px]"
         placeholder="Texto da lei..."
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
       />
+
+      {/* PDF para download */}
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+        <p className="text-sm font-medium text-gray-700">PDF para download</p>
+        <p className="text-xs text-gray-500">
+          Estude com áudio, texto e questões — tudo no app, com acesso offline para estudar quando quiser.
+          Para impressão, baixe o PDF abaixo.
+        </p>
+        {pdf ? (
+          <div className="flex items-center gap-3">
+            <a
+              href={pdf}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-blue-600 hover:bg-blue-50"
+            >
+              <Download className="h-4 w-4" />
+              {decodeURIComponent(pdf.split('/').pop() ?? 'PDF')}
+            </a>
+            <button
+              type="button"
+              onClick={() => setPdf(null)}
+              className="text-xs text-red-500 hover:text-red-700"
+            >
+              Remover
+            </button>
+          </div>
+        ) : null}
+        <FileUpload
+          label="Upload do PDF"
+          accept=".pdf,application/pdf"
+          type="pdf"
+          value={pdf}
+          onChange={(url) => setPdf(url ?? null)}
+          onUpload={(file, onProgress) => uploadFile('audiocursos', file, 'pdfs', onProgress)}
+        />
+      </div>
+
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateMutation.isPending}>
-          {updateMutation.isPending ? 'Salvando...' : 'Salvar Texto'}
+          {updateMutation.isPending ? 'Salvando...' : 'Salvar'}
         </Button>
       </div>
     </div>
