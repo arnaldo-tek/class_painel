@@ -3,6 +3,7 @@ import {
   Plus, FolderOpen, FolderClosed, FileText, Trash2, Pencil, ChevronRight, ChevronDown,
   Music, HelpCircle, AlignLeft, Upload, Loader2, Search, MoreHorizontal, X, Download,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   usePacotesLeis, useCreatePacoteLei, useUpdatePacoteLei, useDeletePacoteLei,
   useSubpastasLeis, useCreateSubpastaLei, useUpdateSubpastaLei, useDeleteSubpastaLei,
@@ -932,7 +933,12 @@ function TextoTab({ leiId }: { leiId: string }) {
   }, [lei, initialized])
 
   async function handleSave() {
-    await updateMutation.mutateAsync({ id: leiId, texto: texto || null, pdf: pdf || null })
+    try {
+      await updateMutation.mutateAsync({ id: leiId, texto: texto || null, pdf: pdf || null })
+      toast.success('Salvo com sucesso!')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar')
+    }
   }
 
   if (isLoading) return <p className="text-sm text-gray-400">Carregando...</p>

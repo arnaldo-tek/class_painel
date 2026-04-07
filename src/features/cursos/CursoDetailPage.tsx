@@ -6,6 +6,7 @@ import {
   BookOpen, Music, HelpCircle, Upload, Loader2, Users, Layers,
   MessageCircle, Send, User,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/cn'
 import { supabase } from '@/lib/supabase'
@@ -931,11 +932,19 @@ function AulaGeralTab({
           modulo_id: moduloId,
           descricao: form.descricao || null,
           sort_order: totalAulas,
+          pdf: form.pdf || null,
+          video_url: form.video_url || null,
+          imagem_capa: form.imagem_capa || null,
+          is_degustacao: form.is_degustacao,
+          is_liberado: form.is_liberado,
         })
       }
+      toast.success(isEditing ? 'Aula atualizada com sucesso!' : 'Aula criada com sucesso!')
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar')
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar'
+      setError(msg)
+      toast.error(msg)
     }
   }
 

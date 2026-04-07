@@ -88,6 +88,11 @@ export async function createAula(aula: {
   modulo_id?: string | null
   descricao?: string | null
   sort_order?: number
+  pdf?: string | null
+  video_url?: string | null
+  imagem_capa?: string | null
+  is_degustacao?: boolean
+  is_liberado?: boolean
 }) {
   const { data, error } = await supabase
     .from('aulas')
