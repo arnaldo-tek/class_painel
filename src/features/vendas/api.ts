@@ -185,7 +185,7 @@ export async function fetchVendasDetalheProfessor(
 ): Promise<VendaDetalheProfessor[]> {
   let query = supabase
     .from('movimentacoes')
-    .select('curso_id, nome_curso, valor, taxa_plataforma')
+    .select('curso_id, nome_curso, valor, taxa_plataforma, cursos(nome)')
     .eq('status', 'paid')
     .eq('professor_id', professorId)
 
@@ -201,6 +201,7 @@ export async function fetchVendasDetalheProfessor(
     const existing = grouped.get(key)
     const valor = Number(row.valor ?? 0)
     const taxa = Number(row.taxa_plataforma ?? 0)
+    const nomeCurso = (row as any).cursos?.nome || row.nome_curso || 'Curso removido'
     if (existing) {
       existing.total_vendas += 1
       existing.fat_total += valor
@@ -209,7 +210,7 @@ export async function fetchVendasDetalheProfessor(
     } else {
       grouped.set(key, {
         curso_id: row.curso_id,
-        nome_curso: row.nome_curso ?? 'Curso removido',
+        nome_curso: nomeCurso,
         total_vendas: 1,
         fat_total: valor,
         fat_plataforma: taxa,
