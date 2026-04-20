@@ -332,6 +332,32 @@ function CursoChatSection({ enrollments, loading }: { enrollments: CursoEnrollme
   const [search, setSearch] = useState('')
   const qc = useQueryClient()
 
+  const studentIds = enrollments.map((e) => e.user_id)
+
+  // Busca todos os chats do professor com alunos matriculados de uma vez
+  const { data: chatsMap } = useQuery({
+    queryKey: ['curso-chats-unread', user?.id, studentIds],
+    queryFn: async () => {
+      if (!user || !studentIds.length) return new Map<string, boolean>()
+      const { data } = await supabase
+        .from('chats')
+        .select('user_a, user_b, message_seen, last_message_sent_by')
+        .or(`and(user_a.eq.${user.id},user_b.in.(${studentIds.join(',')})),and(user_b.eq.${user.id},user_a.in.(${studentIds.join(',')}))`)
+
+      const map = new Map<string, boolean>()
+      for (const chat of data ?? []) {
+        const studentId = chat.user_a === user.id ? chat.user_b : chat.user_a
+        const isUnread = !chat.message_seen
+          && chat.last_message_sent_by !== null
+          && chat.last_message_sent_by !== user.id
+        map.set(studentId, isUnread)
+      }
+      return map
+    },
+    enabled: !!user && studentIds.length > 0,
+    refetchInterval: 30000,
+  })
+
   const filtered = enrollments.filter((e) => {
     if (!search) return true
     const term = search.toLowerCase()
@@ -368,6 +394,18 @@ function CursoChatSection({ enrollments, loading }: { enrollments: CursoEnrollme
     },
     enabled: !!user && !!selectedUserId,
   })
+
+  // Marca como lido quando o professor abre o chat
+  useEffect(() => {
+    if (!activeChatId || !user) return
+    supabase
+      .from('chats')
+      .update({ message_seen: true })
+      .eq('id', activeChatId)
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ['curso-chats-unread'] })
+      })
+  }, [activeChatId, user, qc])
 
   if (loading) return <LoadingSpinner />
 
@@ -408,9 +446,14 @@ function CursoChatSection({ enrollments, loading }: { enrollments: CursoEnrollme
                 {(e.profiles?.display_name || e.profiles?.email || '?')[0].toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {e.profiles?.display_name || e.profiles?.email || 'Aluno'}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {e.profiles?.display_name || e.profiles?.email || 'Aluno'}
+                  </p>
+                  {chatsMap?.get(e.user_id) && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
+                  )}
+                </div>
                 {e.profiles?.display_name && e.profiles?.email && (
                   <p className="text-xs text-gray-500 truncate">{e.profiles.email}</p>
                 )}
