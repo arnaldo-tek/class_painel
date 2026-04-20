@@ -163,7 +163,7 @@ function ChamadoChat({ chamado, onOpen }: { chamado: Chamado; onOpen?: () => voi
     if (!(chamado as any).has_nova_mensagem) return
     supabase
       .from('chamados')
-      .update({ has_nova_mensagem: false })
+      .update({ has_nova_mensagem: false } as any)
       .eq('id', chamado.id)
       .then(() => onOpen?.())
   }, [chamado.id])
