@@ -116,7 +116,7 @@ export function ProfessorDetailPage() {
               {professor.disciplina && (
                 <span className="text-sm text-gray-500">{professor.disciplina}</span>
               )}
-              {professor.average_rating && (
+              {!!professor.average_rating && (
                 <div className="flex items-center gap-1 text-sm text-gray-500">
                   <Star className="h-3.5 w-3.5 text-yellow-500" />
                   {Number(professor.average_rating).toFixed(1)}
@@ -531,8 +531,16 @@ function TransferHistory({ recipientId }: { recipientId: string }) {
 
   const statusColors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800',
+    pending_transfer: 'bg-yellow-100 text-yellow-800',
     transferred: 'bg-green-100 text-green-800',
     failed: 'bg-red-100 text-red-800',
+  }
+
+  const statusLabels: Record<string, string> = {
+    pending: 'Pendente',
+    pending_transfer: 'Em transferência',
+    transferred: 'Transferido',
+    failed: 'Falhou',
   }
 
   return (
@@ -559,7 +567,7 @@ function TransferHistory({ recipientId }: { recipientId: string }) {
                 </td>
                 <td className="px-4 py-2">
                   <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[t.status] ?? 'bg-gray-100 text-gray-800'}`}>
-                    {t.status}
+                    {statusLabels[t.status] ?? t.status}
                   </span>
                 </td>
                 <td className="px-4 py-2 text-gray-400 text-xs font-mono">
@@ -873,12 +881,10 @@ function TabCursos({ professorId }: { professorId: string }) {
               <p className="font-medium text-gray-900">{c.nome}</p>
               <div className="mt-0.5 flex items-center gap-2 text-sm text-gray-500">
                 <span>{c.preco ? `R$ ${Number(c.preco).toFixed(2)}` : 'Grátis'}</span>
-                {c.average_rating && (
-                  <span className="flex items-center gap-0.5">
-                    <Star className="h-3 w-3 text-yellow-500" />
-                    {Number(c.average_rating).toFixed(1)}
-                  </span>
-                )}
+                <span className="flex items-center gap-0.5">
+                  <Star className="h-3 w-3 text-yellow-500" />
+                  {c.average_rating ? Number(c.average_rating).toFixed(1) : '—'}
+                </span>
               </div>
             </div>
             <Badge variant={c.is_publicado ? 'success' : 'warning'}>
