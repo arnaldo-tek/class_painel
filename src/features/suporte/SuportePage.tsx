@@ -103,8 +103,15 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
               return (
                 <TableRow key={c.id} className="cursor-pointer hover:bg-blue-50" onClick={() => setSelectedChamado(c)}>
                   <TableCell>
-                    <p className="font-medium">{c.profiles?.display_name ?? '—'}</p>
-                    <p className="text-xs text-gray-500">{c.profiles?.email}</p>
+                    <div className="flex items-center gap-2">
+                      {(c as any).has_nova_mensagem && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0" />
+                      )}
+                      <div>
+                        <p className="font-medium">{c.profiles?.display_name ?? '—'}</p>
+                        <p className="text-xs text-gray-500">{c.profiles?.email}</p>
+                      </div>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <p className="line-clamp-2 text-sm">{c.descricao ?? '—'}</p>
@@ -133,16 +140,33 @@ function SuportePage({ tipo, titulo }: { tipo: 'aluno' | 'professor'; titulo: st
         title={`Chamado - ${selectedChamado?.profiles?.display_name ?? 'Usuário'}`}
         width="max-w-lg"
       >
-        {selectedChamado && <ChamadoChat chamado={selectedChamado} />}
+        {selectedChamado && (
+          <ChamadoChat
+            chamado={selectedChamado}
+            onOpen={() => {
+              qc.invalidateQueries({ queryKey: ['chamados', tipo] })
+            }}
+          />
+        )}
       </Drawer>
     </div>
   )
 }
 
-function ChamadoChat({ chamado }: { chamado: Chamado }) {
+function ChamadoChat({ chamado, onOpen }: { chamado: Chamado; onOpen?: () => void }) {
   const [msg, setMsg] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const qc = useQueryClient()
+
+  // Marca como lido ao abrir
+  useEffect(() => {
+    if (!(chamado as any).has_nova_mensagem) return
+    supabase
+      .from('chamados')
+      .update({ has_nova_mensagem: false })
+      .eq('id', chamado.id)
+      .then(() => onOpen?.())
+  }, [chamado.id])
 
   const { data: mensagens, isLoading } = useQuery({
     queryKey: ['chamado-mensagens', chamado.id],
