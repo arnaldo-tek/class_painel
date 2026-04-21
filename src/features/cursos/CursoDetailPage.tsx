@@ -395,17 +395,15 @@ function CursoChatSection({ enrollments, loading }: { enrollments: CursoEnrollme
     enabled: !!user && !!selectedUserId,
   })
 
-  // Marca como lido quando o professor abre o chat
+  // Marca como lido quando o professor seleciona um aluno (mesmo que activeChatId já esteja cacheado)
   useEffect(() => {
     if (!activeChatId || !user) return
     supabase
       .from('chats')
       .update({ message_seen: true })
       .eq('id', activeChatId)
-      .then(() => {
-        qc.invalidateQueries({ queryKey: ['curso-chats-unread'] })
-      })
-  }, [activeChatId, user, qc])
+      .then(() => qc.invalidateQueries({ queryKey: ['curso-chats-unread'] }))
+  }, [selectedUserId, activeChatId, user, qc])
 
   if (loading) return <LoadingSpinner />
 
@@ -514,7 +512,7 @@ function CursoChatMessages({ chatId, otherName }: { chatId: string; otherName: s
     },
   })
 
-  // Realtime subscription
+  // Realtime subscription — marca como lido ao receber mensagem enquanto o chat está aberto
   useEffect(() => {
     const channel = supabase
       .channel(`curso-chat-${chatId}`)
@@ -523,6 +521,8 @@ function CursoChatMessages({ chatId, otherName }: { chatId: string; otherName: s
         { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `chat_id=eq.${chatId}` },
         () => {
           qc.invalidateQueries({ queryKey: ['chat-messages', chatId] })
+          supabase.from('chats').update({ message_seen: true }).eq('id', chatId)
+            .then(() => qc.invalidateQueries({ queryKey: ['curso-chats-unread'] }))
         },
       )
       .subscribe()
