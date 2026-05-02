@@ -76,7 +76,7 @@ function TabDadosPessoais({ profile, email }: { profile: Record<string, unknown>
     cpf_cnpj: (profile.cpf_cnpj as string) ?? '',
     data_nascimento: (profile.data_nascimento as string) ?? '',
     rua: (profile.rua as string) ?? '',
-    numero: (profile.numero as string) ?? '',
+    numero_casa_ap: (profile.numero_casa_ap as string) ?? '',
     bairro: (profile.bairro as string) ?? '',
     cidade: (profile.cidade as string) ?? '',
     estado: (profile.estado as string) ?? '',
@@ -107,7 +107,7 @@ function TabDadosPessoais({ profile, email }: { profile: Record<string, unknown>
       <h3 className="text-sm font-semibold text-gray-700 pt-2">Endereço</h3>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Rua" value={form.rua} onChange={(v) => handleChange('rua', v)} />
-        <Field label="Número" value={form.numero} onChange={(v) => handleChange('numero', v)} />
+        <Field label="Número/Apto" value={form.numero_casa_ap} onChange={(v) => handleChange('numero_casa_ap', v)} />
         <Field label="Bairro" value={form.bairro} onChange={(v) => handleChange('bairro', v)} />
         <Field label="Cidade" value={form.cidade} onChange={(v) => handleChange('cidade', v)} />
         <Field label="Estado" value={form.estado} onChange={(v) => handleChange('estado', v)} />

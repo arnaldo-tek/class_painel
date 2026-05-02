@@ -1,0 +1,38 @@
+[functions.manage-colaborador]
+verify_jwt = false
+
+[functions.manage-professor]
+verify_jwt = false
+
+[functions.payment-checkout-card]
+verify_jwt = false
+
+[functions.payment-checkout-pix]
+verify_jwt = false
+
+[functions.payment-create-customer]
+verify_jwt = false
+
+[functions.payment-orders]
+verify_jwt = false
+
+[functions.payment-recipient-balance]
+verify_jwt = false
+
+[functions.payment-recipient-details]
+verify_jwt = false
+
+[functions.payment-register-recipient]
+verify_jwt = false
+
+[functions.payment-subscription]
+verify_jwt = false
+
+[functions.payment-transfer]
+verify_jwt = false
+
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.register-professor]
+verify_jwt = false

@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "1b5ae682-f683-4145-8fe4-08dafc838b5e"
+      }
+    },
+    "android": {
+      "package": "com.superclass.classaluno"
+    }
+  }
+}
