@@ -153,52 +153,37 @@ export function CursoFormPage() {
 
   // Reverse-lookup: pre-selecionar estado a partir do nome salvo no curso
   useEffect(() => {
-    if (!isEditing || !existingCurso?.estado || !estados?.length || estadoId) return
+    if (!isEditing || !existingCurso?.estado || !estados?.length || form.estado_id) return
     const match = estados.find((e) => e.nome === existingCurso.estado)
-    if (match) {
-      setEstadoId(match.id)
-      setForm((f) => ({ ...f, estado_id: match.id }))
-    }
-  }, [isEditing, existingCurso?.estado, estados, estadoId])
+    if (match) setForm((f) => ({ ...f, estado_id: match.id }))
+  }, [isEditing, existingCurso?.estado, estados, form.estado_id])
 
-  // Reverse-lookup: pre-selecionar município (depende de estadoId estar preenchido)
+  // Reverse-lookup: pre-selecionar município (depende de form.estado_id)
   useEffect(() => {
     if (!isEditing || !existingCurso?.cidade || !municipios?.length || form.municipio_id) return
     const match = municipios.find((m) => m.nome === existingCurso.cidade)
-    if (match) {
-      setMunicipioId(match.id)
-      setForm((f) => ({ ...f, municipio_id: match.id }))
-    }
+    if (match) setForm((f) => ({ ...f, municipio_id: match.id }))
   }, [isEditing, existingCurso?.cidade, municipios, form.municipio_id])
 
   // Reverse-lookup: pre-selecionar escolaridade
   useEffect(() => {
     if (!isEditing || !existingCurso?.escolaridade || !escolaridades?.length || form.escolaridade_id) return
     const match = escolaridades.find((e) => e.nome === existingCurso.escolaridade)
-    if (match) {
-      setEscolaridadeId(match.id)
-      setForm((f) => ({ ...f, escolaridade_id: match.id }))
-    }
+    if (match) setForm((f) => ({ ...f, escolaridade_id: match.id }))
   }, [isEditing, existingCurso?.escolaridade, escolaridades, form.escolaridade_id])
 
-  // Reverse-lookup: pre-selecionar órgão (depende de estadoId/municipioId)
+  // Reverse-lookup: pre-selecionar órgão (depende de form.estado_id/municipio_id)
   useEffect(() => {
     if (!isEditing || !existingCurso?.orgao || !orgaos?.length || form.orgao_id) return
     const match = orgaos.find((o) => o.nome === existingCurso.orgao)
-    if (match) {
-      setOrgaoId(match.id)
-      setForm((f) => ({ ...f, orgao_id: match.id }))
-    }
+    if (match) setForm((f) => ({ ...f, orgao_id: match.id }))
   }, [isEditing, existingCurso?.orgao, orgaos, form.orgao_id])
 
-  // Reverse-lookup: pre-selecionar cargo (depende de orgaoId)
+  // Reverse-lookup: pre-selecionar cargo (depende de form.orgao_id)
   useEffect(() => {
     if (!isEditing || !existingCurso?.cargo || !cargos?.length || form.cargo_id) return
     const match = cargos.find((c) => c.nome === existingCurso.cargo)
-    if (match) {
-      setCargoId(match.id)
-      setForm((f) => ({ ...f, cargo_id: match.id }))
-    }
+    if (match) setForm((f) => ({ ...f, cargo_id: match.id }))
   }, [isEditing, existingCurso?.cargo, cargos, form.cargo_id])
 
   function handleChange(field: string, value: string | boolean) {
