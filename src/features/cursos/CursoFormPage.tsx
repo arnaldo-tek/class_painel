@@ -151,6 +151,56 @@ export function CursoFormPage() {
     }
   }, [isProfessor, isAdmin, professorProfile, form.professor_id])
 
+  // Reverse-lookup: pre-selecionar estado a partir do nome salvo no curso
+  useEffect(() => {
+    if (!isEditing || !existingCurso?.estado || !estados?.length || estadoId) return
+    const match = estados.find((e) => e.nome === existingCurso.estado)
+    if (match) {
+      setEstadoId(match.id)
+      setForm((f) => ({ ...f, estado_id: match.id }))
+    }
+  }, [isEditing, existingCurso?.estado, estados, estadoId])
+
+  // Reverse-lookup: pre-selecionar município (depende de estadoId estar preenchido)
+  useEffect(() => {
+    if (!isEditing || !existingCurso?.cidade || !municipios?.length || form.municipio_id) return
+    const match = municipios.find((m) => m.nome === existingCurso.cidade)
+    if (match) {
+      setMunicipioId(match.id)
+      setForm((f) => ({ ...f, municipio_id: match.id }))
+    }
+  }, [isEditing, existingCurso?.cidade, municipios, form.municipio_id])
+
+  // Reverse-lookup: pre-selecionar escolaridade
+  useEffect(() => {
+    if (!isEditing || !existingCurso?.escolaridade || !escolaridades?.length || form.escolaridade_id) return
+    const match = escolaridades.find((e) => e.nome === existingCurso.escolaridade)
+    if (match) {
+      setEscolaridadeId(match.id)
+      setForm((f) => ({ ...f, escolaridade_id: match.id }))
+    }
+  }, [isEditing, existingCurso?.escolaridade, escolaridades, form.escolaridade_id])
+
+  // Reverse-lookup: pre-selecionar órgão (depende de estadoId/municipioId)
+  useEffect(() => {
+    if (!isEditing || !existingCurso?.orgao || !orgaos?.length || form.orgao_id) return
+    const match = orgaos.find((o) => o.nome === existingCurso.orgao)
+    if (match) {
+      setOrgaoId(match.id)
+      setForm((f) => ({ ...f, orgao_id: match.id }))
+    }
+  }, [isEditing, existingCurso?.orgao, orgaos, form.orgao_id])
+
+  // Reverse-lookup: pre-selecionar cargo (depende de orgaoId)
+  useEffect(() => {
+    if (!isEditing || !existingCurso?.cargo || !cargos?.length || form.cargo_id) return
+    const match = cargos.find((c) => c.nome === existingCurso.cargo)
+    if (match) {
+      setCargoId(match.id)
+      setForm((f) => ({ ...f, cargo_id: match.id }))
+    }
+  }, [isEditing, existingCurso?.cargo, cargos, form.cargo_id])
+
   function handleChange(field: string, value: string | boolean) {
     setForm((f) => ({ ...f, [field]: value }))
   }
