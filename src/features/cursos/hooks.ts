@@ -67,7 +67,8 @@ export function useUpdateCurso() {
 export function useEncerrarCurso() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: encerrarCurso,
+    mutationFn: ({ id, dataEncerramento }: { id: string; dataEncerramento: string }) =>
+      encerrarCurso(id, dataEncerramento),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['cursos'] })
     },

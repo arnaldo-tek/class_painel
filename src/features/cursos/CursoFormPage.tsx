@@ -47,6 +47,7 @@ export function CursoFormPage() {
     taxa_superclasse: '',
     is_publicado: false,
     is_degustacao: false,
+    data_encerramento: '',
     imagem: '' as string | null,
     // Filter name values (saved to cursos table)
     estado: '',
@@ -124,6 +125,7 @@ export function CursoFormPage() {
           : defaultMarkup,
         is_publicado: existingCurso.is_publicado ?? false,
         is_degustacao: existingCurso.is_degustacao ?? false,
+        data_encerramento: (existingCurso as any).data_encerramento ?? '',
         imagem: existingCurso.imagem ?? null,
         estado: existingCurso.estado ?? '',
         cidade: existingCurso.cidade ?? '',
@@ -255,6 +257,7 @@ export function CursoFormPage() {
       taxa_superclasse: parseFloat(defaultMarkup) || 30,
       is_publicado: form.is_publicado,
       is_degustacao: form.is_degustacao,
+      data_encerramento: form.data_encerramento || null,
       imagem: form.imagem || null,
       estado: form.estado || null,
       cidade: form.cidade || null,
@@ -516,6 +519,15 @@ export function CursoFormPage() {
           value={form.video_aula_apresentacao}
           onChange={(e) => handleChange('video_aula_apresentacao', e.target.value)}
           placeholder="https://..."
+        />
+
+        <Input
+          id="data_encerramento"
+          label="Data de encerramento (opcional)"
+          type="date"
+          value={form.data_encerramento}
+          onChange={(e) => handleChange('data_encerramento', e.target.value)}
+          min={new Date().toISOString().slice(0, 10)}
         />
 
         <div className="space-y-3">

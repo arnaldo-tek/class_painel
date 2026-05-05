@@ -123,10 +123,10 @@ export async function updateCurso(id: string, updates: Partial<Tables<'cursos'>>
   return data
 }
 
-export async function encerrarCurso(id: string) {
+export async function encerrarCurso(id: string, dataEncerramento: string) {
   const { error } = await supabase
     .from('cursos')
-    .update({ is_encerrado: true, is_publicado: false })
+    .update({ is_encerrado: true, is_publicado: false, data_encerramento: dataEncerramento } as any)
     .eq('id', id)
   if (error) throw error
 }

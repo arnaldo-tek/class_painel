@@ -18,6 +18,7 @@ import { useProfessorProfile } from '@/hooks/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { Modal } from '@/components/ui/modal'
 import { Badge } from '@/components/ui/badge'
 import {
   Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
@@ -27,7 +28,9 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Tooltip } from '@/components/ui/tooltip'
 
 function getCursoStatus(curso: Curso) {
-  if (curso.is_encerrado) return { label: 'Encerrado', variant: 'danger' as const }
+  const today = new Date().toISOString().slice(0, 10)
+  const autoExpired = !!(curso as any).data_encerramento && (curso as any).data_encerramento < today
+  if (curso.is_encerrado || autoExpired) return { label: 'Encerrado', variant: 'danger' as const }
   if (curso.is_publicado) return { label: 'Publicado', variant: 'success' as const }
   return { label: 'Rascunho', variant: 'warning' as const }
 }
@@ -56,6 +59,8 @@ export function CursosPage() {
   const { data: categorias } = useCategoriasCurso()
   const encerrarMutation = useEncerrarCurso()
   const togglePublicarMutation = useTogglePublicarCurso()
+  const [encerrarModal, setEncerrarModal] = useState<{ id: string; nome: string } | null>(null)
+  const [dataEncerramento, setDataEncerramento] = useState('')
 
   // Sub-filtros dinâmicos baseados na categoria selecionada
   const { data: categoriaFiltros } = useCategoria(filters.categoriaId || undefined)
@@ -173,9 +178,15 @@ export function CursosPage() {
   }
 
   function handleEncerrar(id: string, nome: string) {
-    if (confirm(`Tem certeza que deseja encerrar o curso "${nome}"? Ele será despublicado.`)) {
-      encerrarMutation.mutate(id)
-    }
+    setDataEncerramento(new Date().toISOString().slice(0, 10))
+    setEncerrarModal({ id, nome })
+  }
+
+  function confirmEncerrar() {
+    if (!encerrarModal || !dataEncerramento) return
+    encerrarMutation.mutate({ id: encerrarModal.id, dataEncerramento }, {
+      onSuccess: () => setEncerrarModal(null),
+    })
   }
 
   function handleTogglePublicar(id: string, publicar: boolean) {
@@ -470,6 +481,37 @@ export function CursosPage() {
             onPageChange={(page) => setFilters((f) => ({ ...f, page }))}
           />
         </>
+      )}
+
+      {encerrarModal && (
+        <Modal open onClose={() => setEncerrarModal(null)} title="Encerrar Curso">
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              O curso <strong>"{encerrarModal.nome}"</strong> será removido da vitrine.
+              Defina até quando os alunos já matriculados terão acesso ao conteúdo.
+            </p>
+            <Input
+              label="Último dia de acesso para alunos matriculados *"
+              type="date"
+              value={dataEncerramento}
+              min={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDataEncerramento(e.target.value)}
+              required
+            />
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={confirmEncerrar}
+                disabled={!dataEncerramento || encerrarMutation.isPending}
+                className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-40"
+              >
+                {encerrarMutation.isPending ? 'Encerrando...' : 'Encerrar curso'}
+              </Button>
+              <Button variant="secondary" onClick={() => setEncerrarModal(null)}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   )
